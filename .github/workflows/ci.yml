@@ -1,0 +1,68 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: install postgres client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: apply migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: bash db/apply.sh
+      - name: verify tables
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: |
+          tables=$(psql "$DATABASE_URL" -tA -c "SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND tablename IN ('sessions','inodes','blocks','operations','executions','jobs');")
+          test "$tables" = "6"
+      - name: verify append-only trigger
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: |
+          triggers=$(psql "$DATABASE_URL" -tA -c "SELECT count(*) FROM pg_trigger WHERE tgname LIKE 'operations_append_only_%';")
+          test "$triggers" -ge 3
+      - name: verify append-only enforcement
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: |
+          insert=$(psql "$DATABASE_URL" -tA -c "INSERT INTO public.sessions (name) VALUES ('ci-smoke') RETURNING id;")
+          update=$(psql "$DATABASE_URL" -tA -c "UPDATE public.sessions SET meta = '{}'::jsonb WHERE id = '$insert';")
+          echo "update result: $update"
