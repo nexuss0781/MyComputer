@@ -117,7 +117,9 @@ worker 1).
 ## External dependencies awaiting
 
 - [x] GitHub repo provisioned → **nexuss0781/MyComputer** (public), CI green
-- [x] Supabase project provisioned + service key (migrations proven on PG16 in CI; real Supabase apply once project exists)
+- [x] Supabase project provisioned + service key → connected via Vercel
+      integration; `0001_init.sql` applied (tables/triggers/enforcement verified)
+- [x] Migration runner `db/migrate.mjs` (tracked, checksummed) wired as `pnpm db:migrate`
 - [ ] Telegram private channel credentials/access for bridge
 - [ ] Vercel project + env (Supabase URL/key, bridge URL/token)
 - [ ] Bridge base URL + auth (from hosted bot server owner)
