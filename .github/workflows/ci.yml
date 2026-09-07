@@ -39,12 +39,20 @@ jobs:
           --health-retries 10
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - name: install postgres client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
-      - name: apply migrations
+      - name: apply + verify idempotency with production runner
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
-        run: bash db/apply.sh
+        run: |
+          node db/migrate.mjs
+          node db/migrate.mjs | grep -q "migrations up to date"
       - name: verify tables
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres

@@ -14,10 +14,12 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "test": "turbo run test",
-    "db:apply": "bash db/apply.sh"
+    "db:apply": "bash db/apply.sh",
+    "db:migrate": "node db/migrate.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "pg": "^8.13.1",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
