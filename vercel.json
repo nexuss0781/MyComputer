@@ -1,8 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "hono",
   "functions": {
-    "app/api/[[...route]].ts": {
+    "api/[[...route]].ts": {
       "maxDuration": 60,
       "runtime": "nodejs22.x"
     }
