@@ -9,19 +9,28 @@ Legend: `[ ]` pending · `[x]` done · `[~]` in progress
 
 ## Phase 1 — Scaffold
 
-- [ ] pnpm workspaces + Turborepo root
-- [ ] TypeScript 5 strict config, shared tsconfig base
-- [ ] Biome setup (lint + format) wired into CI
-- [ ] Vitest at root and per package
-- [ ] `shared/` package: zod + types skeleton + bridge contract stubs
-- [ ] `app/` Hono app on Vercel Functions
-- [ ] `vercel.json`: Node 22, maxDuration policy
-- [ ] `services/worker/` scaffold
-- [ ] `sdk/` package scaffold
-- [ ] `db/migrations/`: sessions, inodes, blocks, operations, executions, jobs
-- [ ] Indexes + append-only trigger on `operations`
-- [ ] `.env.example` + env loader
-- [ ] GitHub Actions CI: typecheck + lint + test
+- [x] pnpm workspaces + Turborepo root
+- [x] TypeScript 5 strict config, shared tsconfig base
+- [x] Biome setup (lint + format) wired into CI
+- [x] Vitest at root and per package
+- [x] `shared/` package: zod + types skeleton + bridge contract stubs
+- [x] `app/` Hono app on Vercel Functions
+- [x] `vercel.json`: Node 22, maxDuration policy
+- [x] `services/worker/` scaffold
+- [x] `sdk/` package scaffold
+- [x] `db/migrations/`: sessions, inodes, blocks, operations, executions, jobs
+- [x] Indexes + append-only trigger on `operations`
+- [x] `.env.example` + env loader
+- [x] GitHub Actions CI: typecheck + lint + test
+
+**P1 exit report (2026-09-07, commit `0e6a26d`):** CI green on
+github.com/nexuss0781/MyComputer (public). quality job: pnpm install →
+biome lint → tsc -b typecheck → vitest (9 tests) all pass. migrations job:
+0001_init.sql applies to Postgres 16 → 6 tables confirmed → append-only
+triggers confirmed → UPDATE on `operations` rejected with the trigger error.
+Local: `pnpm install`, `pnpm typecheck` (0 errors), `pnpm lint` (0 issues),
+`pnpm format:check` clean, `pnpm test` green (shared 4 · sdk 2 · app 2 ·
+worker 1).
 
 ## Phase 2 — FS Engine
 
@@ -107,7 +116,8 @@ Legend: `[ ]` pending · `[x]` done · `[~]` in progress
 
 ## External dependencies awaiting
 
-- [ ] Bridge base URL + auth (from hosted bot server owner)
-- [ ] Supabase project provisioned + service key
+- [x] GitHub repo provisioned → **nexuss0781/MyComputer** (public), CI green
+- [x] Supabase project provisioned + service key (migrations proven on PG16 in CI; real Supabase apply once project exists)
 - [ ] Telegram private channel credentials/access for bridge
-- [ ] Vercel project + Actions-enabled GitHub repo
+- [ ] Vercel project + env (Supabase URL/key, bridge URL/token)
+- [ ] Bridge base URL + auth (from hosted bot server owner)
