@@ -17,3 +17,5 @@ export function createApp(): Hono {
 }
 
 export const app = createApp();
+
+export default app;

@@ -4,6 +4,6 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src", "api", "../api"],
+  "include": ["src", "api"],
   "exclude": ["node_modules", "dist", ".vercel"]
 }
