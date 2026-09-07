@@ -12,8 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -63,6 +61,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
         run: |
-          insert=$(psql "$DATABASE_URL" -tA -c "INSERT INTO public.sessions (name) VALUES ('ci-smoke') RETURNING id;")
-          update=$(psql "$DATABASE_URL" -tA -c "UPDATE public.sessions SET meta = '{}'::jsonb WHERE id = '$insert';")
-          echo "update result: $update"
+          psql "$DATABASE_URL" -q -tA -c "INSERT INTO public.sessions (name) VALUES ('ci-smoke');"
+          op=$(psql "$DATABASE_URL" -q -tA -c "INSERT INTO public.operations (session_id, op_type, status) SELECT id, 'ci-smoke', 'ok' FROM public.sessions WHERE name = 'ci-smoke' LIMIT 1 RETURNING op_id;")
+          out=$(psql "$DATABASE_URL" -tA -c "UPDATE public.operations SET status = 'done' WHERE op_id = '$op';" 2>&1 || true)
+          printf '%s' "$out" | grep -q 'append-only' && echo "append-only enforced"
