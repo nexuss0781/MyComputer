@@ -26,6 +26,7 @@ export interface SyncTarget {
 
 export interface SyncWriterDeps {
   target: SyncTarget;
+  state?: SyncStateStore;
 }
 
 export interface SyncStats {
@@ -45,6 +46,7 @@ interface Delta {
   executions: Map<string, Execution>;
   sessionDeletes: Set<string>;
   lastFlushed: Map<string, number>;
+  watermarks: Map<string, Date>;
 }
 
 export class SyncWriter {
@@ -56,6 +58,7 @@ export class SyncWriter {
     executions: new Map(),
     sessionDeletes: new Set(),
     lastFlushed: new Map(),
+    watermarks: new Map(),
   };
   private pending = false;
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -121,6 +124,7 @@ export class SyncWriter {
 
   queueRemoveSessionData(sessionId: string): void {
     this.delta.sessionDeletes.add(sessionId);
+    this.delta.watermarks.delete(sessionId);
     for (const k of [...this.delta.upsertedInodes.keys()])
       if (k.startsWith(`${sessionId}::`)) this.delta.upsertedInodes.delete(k);
     for (const k of [...this.delta.insertedBlocks.keys()])
@@ -129,8 +133,15 @@ export class SyncWriter {
       if (k.startsWith(`${sessionId}::`)) this.delta.removedInodes.delete(k);
     for (const k of [...this.delta.removedBlocks])
       if (k.startsWith(`${sessionId}::`)) this.delta.removedBlocks.delete(k);
-    for (const [k, e] of [...this.delta.executions])
-      if (e.sessionId === sessionId) this.delta.executions.delete(k);
+    for (const k of [...this.delta.executions.keys()])
+      if (k.startsWith(`${sessionId}::`)) this.delta.executions.delete(k);
+  }
+
+  noteWatermark(sessionId: string, createdAt: Date): void {
+    const current = this.delta.watermarks.get(sessionId);
+    if (!current || createdAt.getTime() > current.getTime()) {
+      this.delta.watermarks.set(sessionId, createdAt);
+    }
   }
 
   inode(sessionId: string, path: string): Inode | undefined {
@@ -208,7 +219,17 @@ export class SyncWriter {
       );
       throw error;
     }
+    await this.advanceWatermarks();
     return { enqueued: enqueuedAtStart, flushed, failed: 0 };
+  }
+
+  private async advanceWatermarks(): Promise<void> {
+    const state = this.deps.state;
+    if (!state || this.delta.watermarks.size === 0) return;
+    for (const [sessionId, at] of this.delta.watermarks) {
+      await state.set(sessionId, at);
+      this.delta.watermarks.delete(sessionId);
+    }
   }
 
   private async flushOnce(): Promise<boolean> {
@@ -324,6 +345,7 @@ export class SyncWriter {
       if (k.startsWith(`${sessionId}::`)) this.delta.executions.delete(k);
     this.delta.sessionDeletes.delete(sessionId);
     this.delta.lastFlushed.delete(sessionId);
+    this.delta.watermarks.delete(sessionId);
   }
 }
 
@@ -348,17 +370,13 @@ function contentFromOp(op: OplogRecord): { bytes: Uint8Array; mime: string | nul
   };
 }
 
-function executionFromOp(op: OplogRecord): Execution | null {
-  const result = op.result as Execution | null;
-  if (!result || typeof result.execId !== 'string') return null;
-  return { ...result, sessionId: op.sessionId };
-}
-
 /**
  * Replays journal ops newer than the session's flush watermark back into the
  * SyncWriter and flushes. The journal carries full byte content for
  * write/append ops, so a crash between journal append and batch flush is fully
- * recoverable. Returns the number of ops replayed.
+ * recoverable. Exec ops are not replayed: their output is captured at run time
+ * and made durable through the buffered insert path. Returns the number of
+ * ops replayed.
  */
 export async function reconcileFromJournal(ctx: ReconcileContext): Promise<number> {
   const { writer, journal, state, sessionId } = ctx;
@@ -397,13 +415,6 @@ export async function reconcileFromJournal(ctx: ReconcileContext): Promise<numbe
           data: chunk.data,
         })),
       );
-      replayed += 1;
-      continue;
-    }
-
-    const execution = executionFromOp(op);
-    if (execution) {
-      writer.queueInsertExecution(sessionId, execution);
       replayed += 1;
     }
   }

@@ -266,7 +266,7 @@ describe('reconcile from journal', () => {
     expect(stateStore.marks[0]?.toISOString()).toBe(ops[0].createdAt);
   });
 
-  it('replays exec ops and skips ops without content', async () => {
+  it('replays only byte-content ops, not exec ops', async () => {
     const { target, state } = makeFakeTarget();
     const writer = new SyncWriter({ target });
     const stateStore = makeStateStore();
@@ -274,16 +274,6 @@ describe('reconcile from journal', () => {
     const ops = [
       {
         opId: '1',
-        opType: 'write',
-        sessionId: sid,
-        input: { path: '/nope.txt', bytes: 1 },
-        result: { path: '/nope.txt', size: 1, checksum: 'c', blocks: 1 },
-        status: 'ok',
-        durationMs: 1,
-        createdAt: '2024-01-02T00:00:00.000Z',
-      },
-      {
-        opId: '2',
         opType: 'exec',
         sessionId: sid,
         input: { command: 'echo hi' },
@@ -291,6 +281,20 @@ describe('reconcile from journal', () => {
         status: 'ok',
         durationMs: 1,
         createdAt: '2024-01-02T00:00:01.000Z',
+      },
+      {
+        opId: '2',
+        opType: 'write',
+        sessionId: sid,
+        input: {
+          path: '/f.txt',
+          bytes: 3,
+          content: Buffer.from('abc').toString('base64'),
+        },
+        result: { path: '/f.txt', size: 3, checksum: 'c', blocks: 1 },
+        status: 'ok',
+        durationMs: 1,
+        createdAt: '2024-01-02T00:00:02.000Z',
       },
     ];
     const journal = {
@@ -307,8 +311,8 @@ describe('reconcile from journal', () => {
     });
 
     expect(replayed).toBe(1);
-    expect(state.inodes.size).toBe(0);
-    expect(state.executions.has(`${sid}::e9`)).toBe(true);
-    expect(stateStore.marks[0]?.toISOString()).toBe('2024-01-02T00:00:01.000Z');
+    expect(state.inodes.size).toBe(1);
+    expect(state.executions.size).toBe(0);
+    expect(stateStore.marks[0]?.toISOString()).toBe('2024-01-02T00:00:02.000Z');
   });
 });

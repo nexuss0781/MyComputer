@@ -20,4 +20,12 @@ export interface FsBackend {
   renameBlockPath(sessionId: string, fromPath: string, toPath: string): Promise<void>;
 
   deleteSessionData(sessionId: string): Promise<void>;
+
+  /**
+   * Records that every mutation associated with the given journal op has been
+   * queued for batch flushing. The flush uses the op's created_at to advance
+   * the session watermark on success, so reconcile never replays (and
+   * re-materializes) already-flushed writes.
+   */
+  noteWatermark?(sessionId: string, createdAt: Date): Promise<void>;
 }

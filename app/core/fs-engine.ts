@@ -106,8 +106,16 @@ export class FsEngine {
         checksum: plan.result.checksum,
         blocks: plan.result.blocks,
       };
-      await this.oplog.record('write', sessionId, input, result, 'ok', Date.now() - started);
+      const rec = await this.oplog.record(
+        'write',
+        sessionId,
+        input,
+        result,
+        'ok',
+        Date.now() - started,
+      );
       this.applyWrite(sessionId, plan);
+      await this.backend.noteWatermark?.(sessionId, new Date(rec.createdAt));
       return result;
     } catch (error) {
       await this.oplog.recordError(
@@ -226,8 +234,16 @@ export class FsEngine {
         checksum: plan.result.checksum,
         blocks: plan.result.blocks,
       };
-      await this.oplog.record('append', sessionId, input, result, 'ok', Date.now() - started);
+      const rec = await this.oplog.record(
+        'append',
+        sessionId,
+        input,
+        result,
+        'ok',
+        Date.now() - started,
+      );
       this.applyWrite(sessionId, plan);
+      await this.backend.noteWatermark?.(sessionId, new Date(rec.createdAt));
       return result;
     } catch (error) {
       await this.oplog.recordError(
@@ -272,10 +288,18 @@ export class FsEngine {
         updatedAt: new Date().toISOString(),
       };
       const result = { path };
-      await this.oplog.record('mkdir', sessionId, input, result, 'ok', Date.now() - started);
+      const rec = await this.oplog.record(
+        'mkdir',
+        sessionId,
+        input,
+        result,
+        'ok',
+        Date.now() - started,
+      );
       for (const dir of parents) this.backend.upsertInode(dir);
       this.backend.upsertInode(inode);
       this.cache.set(cacheKey(sessionId, path), inode);
+      await this.backend.noteWatermark?.(sessionId, new Date(rec.createdAt));
       return result;
     } catch (error) {
       await this.oplog.recordError(
@@ -360,7 +384,15 @@ export class FsEngine {
       );
       this.evictSubtree(sessionId, from);
       const result = { from, to, moved: subtree.length };
-      await this.oplog.record('move', sessionId, input, result, 'ok', Date.now() - started);
+      const rec = await this.oplog.record(
+        'move',
+        sessionId,
+        input,
+        result,
+        'ok',
+        Date.now() - started,
+      );
+      await this.backend.noteWatermark?.(sessionId, new Date(rec.createdAt));
       return result;
     } catch (error) {
       await this.oplog.recordError(
@@ -422,7 +454,15 @@ export class FsEngine {
         }
       }
       const result = { from, to, copied: subtree.length };
-      await this.oplog.record('copy', sessionId, input, result, 'ok', Date.now() - started);
+      const rec = await this.oplog.record(
+        'copy',
+        sessionId,
+        input,
+        result,
+        'ok',
+        Date.now() - started,
+      );
+      await this.backend.noteWatermark?.(sessionId, new Date(rec.createdAt));
       return result;
     } catch (error) {
       await this.oplog.recordError(
@@ -457,7 +497,15 @@ export class FsEngine {
       await this.backend.removeBlocksByPaths(sessionId, paths);
       this.evictSubtree(sessionId, path);
       const result = { deleted: paths };
-      await this.oplog.record('delete', sessionId, input, result, 'ok', Date.now() - started);
+      const rec = await this.oplog.record(
+        'delete',
+        sessionId,
+        input,
+        result,
+        'ok',
+        Date.now() - started,
+      );
+      await this.backend.noteWatermark?.(sessionId, new Date(rec.createdAt));
       return result;
     } catch (error) {
       await this.oplog.recordError(

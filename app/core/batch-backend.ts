@@ -84,4 +84,8 @@ export class BatchBackend implements FsBackend {
   async deleteSessionData(sessionId: string): Promise<void> {
     this.writer.queueRemoveSessionData(sessionId);
   }
+
+  async noteWatermark(sessionId: string, createdAt: Date): Promise<void> {
+    this.writer.noteWatermark(sessionId, createdAt);
+  }
 }

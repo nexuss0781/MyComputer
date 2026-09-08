@@ -78,7 +78,10 @@ export function getRuntime(): Runtime {
   const db = buildSupabaseClient(url, key);
   const syncState = new SupabaseSyncStateStore(db);
   const journal = new Oplog(new SupabaseJournalStore(db));
-  const writer = new SyncWriter({ target: new SupabaseSyncTarget(db, syncState) });
+  const writer = new SyncWriter({
+    target: new SupabaseSyncTarget(db, syncState),
+    state: syncState,
+  });
 
   const engine = new FsEngine(new BatchBackend(new SupabaseBackend(db), writer), journal);
   const executor = new Executor(new BufferedExecStore(new SupabaseExecStore(db), writer));
