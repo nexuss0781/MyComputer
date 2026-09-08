@@ -34,16 +34,27 @@ worker 1).
 
 ## Phase 2 — FS Engine
 
-- [ ] `oplog` — append-only journal
-- [ ] `fs-engine` — buffer + Supabase-backed virtual tree
-- [ ] op resolution chain (buffer → Supabase → miss)
-- [ ] ops: write, read, append, mkdir, list, move, copy, delete, stat, checksum
-- [ ] path normalization + `..` guard, per-session scope
-- [ ] content chunking (`MAX_CHUNK_BYTES`) + block allocation
-- [ ] routes `/api/fs/*` (10 endpoints), zod-validated
-- [ ] `/api/sys/session` create/list
-- [ ] unit tests: fs-engine in-memory
-- [ ] integration tests: op lifecycle through Hono
+- [x] `oplog` — append-only journal (insert-only, final status + duration)
+- [x] `fs-engine` — Memory + Supabase backends, per-session scope, cache overlay
+- [x] write-through path (buffer batching deferred to P4 by design)
+- [x] ops: write, read, append, mkdir, list, move, copy, delete, stat, checksum
+- [x] path normalization + `..` guard, per-session scope
+- [x] content chunking (`MAX_CHUNK_BYTES` 8 MiB) + block allocation (sha256)
+- [x] routes `/api/fs/*` (10 endpoints), zod-validated
+- [x] `/api/sys/session` create/list/delete + `/api/sys/selftest`
+- [x] unit tests: fs-engine + path + chunker in-memory
+- [x] integration tests: op lifecycle through Hono (app.test.ts http flow)
+
+**P2 exit report (2026-09-08, commits `bd11c1b`→`f303236`):** Local gates all
+green: `pnpm typecheck` (5 pkgs), `pnpm lint`, `pnpm format:check`, `pnpm test`
+(40 tests across shared/app/sdk/worker). CI green on main for all three commits.
+Live proof on Vercel+Supabase: `POST /api/sys/selftest` →
+`{"ok":true,"environment":"supabase","total":14,"passed":14,"failed":0,
+"failures":[],"durationMs":7264,"journalOps":33}` (traversal guard 400, 404 on
+missing, byte-identical read, 10 MiB multi-block round-trip, append, mkdir
+idempotency/conflict, list scoping, move/copy subtree + content, recursive
+delete guard, checksum match, every mutating op journaled). Live HTTP flow
+tested via `app.test.ts`. Bytea stored as PostgREST hex (`\x…`).
 
 ## Phase 3 — Terminal
 
