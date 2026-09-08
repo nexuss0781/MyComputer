@@ -38,25 +38,29 @@ milestones defined in `docs/ROADMAP.md`.
 **Goal:** full file operations on the virtual disc, journaled.
 
 `app/core` modules:
-- [ ] `oplog` — append-only journal writer/reader (RPC-backed)
-- [ ] `fs-engine` — in-memory buffer + Supabase-backed virtual tree
-- [ ] op resolution: read from buffer → miss → Supabase → miss → error
-- [ ] ops: `write` (create/overwrite), `read` (range), `append` (O(1) last block),
+- [x] `oplog` — append-only journal writer/reader (RPC-backed)
+- [x] `fs-engine` — in-memory buffer + Supabase-backed virtual tree
+- [x] op resolution: read from buffer → miss → Supabase → miss → error
+- [x] ops: `write` (create/overwrite), `read` (range), `append` (O(1) last block),
        `mkdir` (recursive), `list` (by parent), `move`, `copy`, `delete`,
        `stat`, `checksum`
-- [ ] path normalization + traversal guard (no `..` escape, per-session scope)
-- [ ] content chunking policy (`MAX_CHUNK_BYTES`) — block allocation + seq
+- [x] path normalization + traversal guard (no `..` escape, per-session scope)
+- [x] content chunking policy (`MAX_CHUNK_BYTES`) — block allocation + seq
 
 Routes (`/api/fs/*`):
-- [ ] write, read, append, mkdir, list, move, copy, delete, stat, checksum
-- [ ] zod-validated request/response on every route
-- [ ] `/api/sys/session` create/list
+- [x] write, read, append, mkdir, list, move, copy, delete, stat, checksum
+- [x] zod-validated request/response on every route
+- [x] `/api/sys/session` create/list
 
 Tests:
-- [ ] unit: fs-engine on in-memory backend
-- [ ] integration: full op lifecycle through Hono (test env Supabase)
+- [x] unit: fs-engine on in-memory backend
+- [x] integration: full op lifecycle through Hono (test env Supabase)
 
 **Exit:** agent can create, read, list, move, copy, delete files; all ops journaled.
+
+**Status: COMPLETE** — live proof (`docs/TODO.md` P2 exit report): prod selftest
+`14/14` on Vercel+Supabase, `journalOps 33`, byte-identical multi-block round-trip,
+traversal guard 400, every mutating op journaled.
 
 ---
 

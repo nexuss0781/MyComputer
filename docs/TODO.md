@@ -132,5 +132,6 @@ tested via `app.test.ts`. Bytea stored as PostgREST hex (`\x…`).
       integration; `0001_init.sql` applied (tables/triggers/enforcement verified)
 - [x] Migration runner `db/migrate.mjs` (tracked, checksummed) wired as `pnpm db:migrate`
 - [ ] Telegram private channel credentials/access for bridge
-- [ ] Vercel project + env (Supabase URL/key, bridge URL/token)
+- [x] Vercel project + env verified (Supabase URL/key live — selftest 14/14 in
+      production; bridge URL/token still awaiting)
 - [ ] Bridge base URL + auth (from hosted bot server owner)

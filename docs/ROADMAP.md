@@ -5,14 +5,12 @@ operations for AI training on GitHub Actions.
 
 ## Where we are
 
-**Phase 0 complete** — spec written (`docs/Project.md`), system designed
-(`docs/DESIGN.md`). Green light to build. External dependencies identified:
+**Phase 1 (Scaffold) and Phase 2 (FS Engine) complete** — docs authored
+(`docs/Project.md`, `docs/DESIGN.md`), CI green on
+github.com/nexuss0781/MyComputer (public), Supabase schema applied + verified,
+prod selftest `14/14` live. Phase 2 exit report in `docs/TODO.md`.
 
-- Vercel project + env (Supabase keys, bridge URL/token)
-- Supabase instance + migrations
-- Hosted bot bridge (provided externally — we consume the contract)
-- Telegram private channel as storage vault
-- GitHub repo with Actions enabled
+**Current: Phase 3 — Agent Tool Surface (Ethco-compatible terminal).**
 
 ## Roadmap
 
