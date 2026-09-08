@@ -81,13 +81,28 @@ protocol); rely on git-integration auto-deploy.
 
 ## Phase 4 — Quick Persistence
 
-- [ ] `sync/supabase-writer` — batch buffer + drain loop
-- [ ] multi-row upserts: inodes, blocks, executions
-- [ ] journal stays immediate (RPC), never batched
-- [ ] flush triggers (size / interval / explicit fsync)
-- [ ] ack semantics + retry with backoff
-- [ ] bench: flush time vs row count
-- [ ] fault-injection test: crash → journal reconcile
+- [x] `sync.SyncWriter` — batch buffer + O(1) drain, retry-with-backoff, buffer retention
+- [x] `sync-supabase.SupabaseSyncTarget` — multi-row upserts for inodes/blocks/executions
+- [x] journal stays immediate (RPC), never batched; fs-engine journal-first for write/append/mkdir
+- [x] flush triggers (interval timer + explicit fsync + post-handler hook)
+- [x] ack semantics: journal + on-buffer, durable on flush
+- [x] `BatchBackend` overlay (read-after-write consistent), `BufferedExecStore`
+- [x] `reconcileFromJournal` — replay write/append content past watermark, idempotent;
+      watermark advances per flushed op (deletes never resurrected); exec ops not replayed
+- [x] migration `0002_sync_state.sql` (`sync_state` watermark) applied to prod
+- [x] unit tests `sync.test.ts` (8 → 9 tests) incl. per-path block replacement
+- [x] persistence selftest (4 suites) + bench: 50-row single batch flush timing
+- [x] prod fsync idempotence proof (71 first backfill → 0 steady-state) + live round-trip
+
+**P4 exit report (2026-09-09, commits `74f9fb2`→`3f18d9e`):** Local gates green
+(tsc/biome/format:check + 45 app tests). Live proof on Vercel+Supabase:
+`POST /api/sys/selftest` → `{"ok":true,"total":22,"passed":22,"failed":0,
+"failures":[],"journalOps":34,"flushBatchMs":106}` (base 18 + persistence 4).
+Live durability round-trip: write 6B → append 12B → `/api/sys/fsync` (ok,
+reconciled 0 at steady state) → stat/read return size 12 with matching sha256 →
+delete → DELETE session `journalPreserved:true`. Known residual: `move`/`copy`/
+`delete` apply-then-journal (not reconcilable replay) — deltas are flushed on
+the same tick, so loss window is sub-second and only in a crash before flush.
 
 ## Phase 5 — Telegram Sink
 

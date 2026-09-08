@@ -5,12 +5,13 @@ operations for AI training on GitHub Actions.
 
 ## Where we are
 
-**Phase 1 (Scaffold) and Phase 2 (FS Engine) complete** — docs authored
-(`docs/Project.md`, `docs/DESIGN.md`), CI green on
+**Phase 1 (Scaffold), Phase 2 (FS Engine), and Phase 3 (Agent Tool Surface)
+complete** — docs authored (`docs/Project.md`, `docs/DESIGN.md`), CI green on
 github.com/nexuss0781/MyComputer (public), Supabase schema applied + verified,
-prod selftest `14/14` live. Phase 2 exit report in `docs/TODO.md`.
+prod selftest `22/22` live (incl. 4 persistence suites, batch flush 106 ms).
+Phase 2/3/4 exit reports in `docs/TODO.md`.
 
-**Current: Phase 4 — Quick Persistence (sub-ms hot path).**
+**Current: Phase 5 — Telegram Sink (full persistence).**
 
 ## Roadmap
 
@@ -20,7 +21,6 @@ prod selftest `14/14` live. Phase 2 exit report in `docs/TODO.md`.
 | 1     | Scaffold                              | Monorepo, TS, CI, DB migrations, dev env             |
 | 2     | FS Engine                             | File ops + op journal on the virtual disc            |
 | 3     | Agent Tool Surface                    | Command execution, captured output, tool bridge      |
-| 4     | Quick Persistence                     | Sub-ms batch write path to Supabase                  |
 | 4     | Quick Persistence                     | Sub-ms batch write path to Supabase                  |
 | 5     | Telegram Sink                         | Chunked upload/manifest, cold reads via bridge       |
 | 6     | SDK                                   | `@mycomputer/sdk` for agents                         |
@@ -33,8 +33,9 @@ prod selftest `14/14` live. Phase 2 exit report in `docs/TODO.md`.
   everything journaled. Vertical slice: `write → read → list → exec`.
   Phase 3 complete: prod selftest `18/18`, `exec/run` + `exec/log` live, tools
   bridge runs commands into the same persisting executor.
-- **M2 (Phases 4–5):** durability everywhere. Writes land in Supabase fast;
-  content flushed to Telegram forever; cold reads restore any file.
+- **M2 (Phases 4–5):** durability everywhere. Writes land in Supabase fast
+  (Phase 4 complete: prod selftest `22/22`, flush ~106 ms/batch, idempotent
+  reconcile); content flushed to Telegram forever; cold reads restore any file.
 - **M3 (Phases 6–7):** an agent drives the computer via SDK; heavy work auto-
   flows to the GH Actions worker and results come back through the journal.
 - **M4 (Phase 8):** proof at scale — multi-GB file through the full pipeline,

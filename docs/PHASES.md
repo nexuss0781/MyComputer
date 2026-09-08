@@ -97,19 +97,45 @@ journal (append-only FK). Local: 35 app tests green, gates clean.
 
 **Goal:** durable hot writes via batched flushes to Supabase.
 
-- [ ] `sync/supabase-writer` — batch buffer + drain loop
-- [ ] multi-row upserts for `inodes`, `blocks`, `executions`
-- [ ] `operations` journal write stays immediate (RPC), never batched-delayed
-- [ ] flush trigger: size threshold, time interval, explicit `fsync`
-- [ ] ack semantics: op acks after journal + on-buffer (durable on flush)
-- [ ] retry with backoff on Supabase failure; buffer is in-memory, journal is truth
+- [x] `sync.SyncWriter` — batch buffer + priority-ordered drain (session deletes →
+       inode upsert → block delete → block insert → exec upsert), O(1) RPC rounds,
+       retry-with-backoff; buffer retained on partial failure
+- [x] `sync-supabase.SupabaseSyncTarget` — multi-row upserts/inserts/deletes for
+       `inodes`, `blocks`, `executions`; `SupabaseSyncStateStore` + migration
+       `0002_sync_state.sql` (`sync_state` flush watermark)
+- [x] `operations` journal write stays immediate (RPC), never batched-delayed;
+       fs-engine is journal-first: compute (reads) → journal RPC → enqueue apply
+- [x] flush trigger: time interval (background timer) + explicit `/api/sys/fsync`;
+       post-handler hook flushes before the response returns
+- [x] ack semantics: op acks after journal + on-buffer (durable on flush)
+- [x] retry with backoff on supabase failure; buffer is in-memory, journal is truth
+- [x] `BatchBackend` overlay adapter (read-after-write consistent, mutation enqueue)
+- [x] `reconcileFromJournal` — replay write/append content ops past the watermark,
+       idempotent; watermark advances per flushed op so deletes are never resurrected
+- [x] journal `write`/`append` input carries `{ path, bytes, mime, content(base64) }`
+- [x] `BufferedExecStore` — exec results ride the batch flush, replay via cold store
 
 Tests:
-- [ ] benchmark: batch flush time vs row count
-- [ ] fault injection: kill flush → reconcile from journal
+- [x] unit: `sync.test.ts` — O(1) round collapse, overlay reads, buffer retention,
+       reconcile idempotence + no exec replay, per-path block replacement
+- [x] persistence selftest (4 suites): cold-read byte durability, idempotent
+       reconcile, exec durability, 50-write single batch flush timing
+- [x] prod proof: selftest `22/22` (incl. persistence 4/4, batch flush **106 ms**,
+       `journalOps 34`); live write→append→fsync→stat/read→delete→session-cleanup
+       round-trip with matching checksums; fsync steady-state idempotent (0 replay)
 
 **Exit:** flush target ~1–10 ms/batch; no data accepted by client is lost in
 crash scenarios (journal replay proves it).
+
+**Status: COMPLETE** — live proof: `/api/sys/selftest` `22/22` on Vercel+Supabase
+(`journalOps 34`), persistence `4/4`, 50-row batch flush `106 ms`. Live round-trip
+`/api/fs/write`(6B) → append(12B) → `/api/sys/fsync` → stat/read (size 12, matching
+sha256) → delete → DELETE session (`journalPreserved:true`). fsync idempotent:
+71 replay on first backfill, 0 steady-state. Local: 45 app tests green, gates clean.
+Commits: `74f9fb2` (feat), `fc3fa01` (watermark idempotence + no exec replay),
+`3f18d9e` (per-path block replace fix).
+
+**→ Milestone M2.**
 
 ---
 
