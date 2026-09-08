@@ -4,6 +4,8 @@ export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   SUPABASE_URL: z.string().url().optional(),
   SUPABASE_SERVICE_KEY: z.string().min(1).optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+  SUPABASE_SECRET_KEY: z.string().min(1).optional(),
   DATABASE_URL: z.string().min(1).optional(),
   BRIDGE_URL: z.string().url().optional(),
   BRIDGE_TOKEN: z.string().min(1).optional(),
@@ -35,7 +37,6 @@ export function resetEnvCache(): void {
 }
 
 export type OperationStatus = 'pending' | 'running' | 'ok' | 'error';
-export type InodeType = 'file' | 'dir';
 
 export interface ApiErrorShape {
   code: string;

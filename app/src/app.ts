@@ -1,7 +1,12 @@
 import { Hono } from 'hono';
+import { fsRoutes } from './routes/fs.js';
+import { sysRoutes } from './routes/sys.js';
+import { getRuntime } from './runtime.js';
 
 export function createApp(): Hono {
   const app = new Hono();
+
+  const runtime = getRuntime();
 
   app.get('/api/sys/ping', (c) =>
     c.json({
@@ -9,6 +14,13 @@ export function createApp(): Hono {
       service: 'my-computer',
       route: '/api/sys/ping',
     }),
+  );
+
+  fsRoutes(() => runtime.engine, app);
+
+  sysRoutes(
+    { engine: () => runtime.engine, sessions: runtime.sessions, environment: runtime.environment },
+    app,
   );
 
   app.all('*', (c) => c.json({ ok: false, error: 'not_found' }, 404));

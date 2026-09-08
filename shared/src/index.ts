@@ -3,4 +3,37 @@ export {
   resetEnvCache,
   envSchema,
 } from './env.js';
-export type { Env, OperationStatus, InodeType, ApiErrorShape } from './env.js';
+export type { Env, OperationStatus, ApiErrorShape } from './env.js';
+
+export { ComputerError, NotFoundError, PathError, ConflictError } from './errors.js';
+export type { ErrorCode } from './errors.js';
+
+export {
+  sessionIdSchema,
+  pathSchema,
+  writeSchema,
+  readSchema,
+  appendSchema,
+  mkdirSchema,
+  listSchema,
+  moveSchema,
+  copySchema,
+  deleteSchema,
+  statSchema,
+  checksumSchema,
+  sessionCreateSchema,
+} from './schemas.js';
+export type {
+  WriteInput,
+  ReadInput,
+  AppendInput,
+  MkdirInput,
+  MoveInput,
+  DeleteInput,
+  Inode,
+  InodeType,
+  BlockRef,
+  WriteResult,
+  ReadResult,
+  SessionRow,
+} from './schemas.js';
