@@ -23,9 +23,12 @@ interface BlockRowRaw {
   data: string | null;
 }
 
-const asB64 = (bytes: Uint8Array) => Buffer.from(bytes).toString('base64');
-const fromB64 = (value: string | null) =>
-  value ? Buffer.from(value, 'base64') : new Uint8Array(0);
+const toBytea = (bytes: Uint8Array) => `\\x${Buffer.from(bytes).toString('hex')}`;
+const fromBytea = (value: string | null) => {
+  if (!value) return new Uint8Array(0);
+  if (value.startsWith('\\x')) return new Uint8Array(Buffer.from(value.slice(2), 'hex'));
+  return new Uint8Array(Buffer.from(value, 'base64'));
+};
 
 export function inodeFromRow(row: InodeRow): Inode {
   return {
@@ -104,7 +107,7 @@ export class SupabaseBackend implements FsBackend {
       seq: row.seq,
       size: row.size,
       checksum: row.checksum,
-      data: fromB64(row.data),
+      data: fromBytea(row.data),
     }));
   }
 
@@ -123,7 +126,7 @@ export class SupabaseBackend implements FsBackend {
       seq: c.seq,
       size: c.size,
       checksum: c.checksum,
-      data: asB64(c.data),
+      data: toBytea(c.data),
     }));
     const { error } = await this.db.from('blocks').insert(rows);
     if (error) throw new Error(`blocks insert failed: ${error.message}`);
