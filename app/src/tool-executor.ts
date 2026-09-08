@@ -503,13 +503,6 @@ export async function executeWorkspaceTool(
         };
       }
 
-      case 'github_clone_repo':
-      case 'github_list_imported_repos':
-      case 'github_sync_repo':
-        return {
-          error: `Tool "${name}" is not supported by the my-computer bridge. Use the Ethco-Agent backend directly for GitHub operations.`,
-        };
-
       default:
         return { error: `Tool "${name}" is not implemented or recognized.` };
     }
