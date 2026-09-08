@@ -42,9 +42,12 @@ export interface ExecStore {
 
 export class MemoryExecStore implements ExecStore {
   private readonly rows = new Map<string, Execution>();
+  private readonly seq = new Map<string, number>();
+  private counter = 0;
 
   async insert(_sessionId: string, execution: Execution): Promise<Execution> {
     this.rows.set(execution.execId, execution);
+    this.seq.set(execution.execId, this.counter++);
     return execution;
   }
 
@@ -56,7 +59,7 @@ export class MemoryExecStore implements ExecStore {
   async list(sessionId: string, offset = 0, limit = 100): Promise<Execution[]> {
     return [...this.rows.values()]
       .filter((row) => row.sessionId === sessionId)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .sort((a, b) => (this.seq.get(b.execId) ?? 0) - (this.seq.get(a.execId) ?? 0))
       .slice(offset, offset + limit);
   }
 

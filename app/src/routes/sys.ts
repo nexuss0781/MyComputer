@@ -59,8 +59,23 @@ export function sysRoutes(deps: SysDeps, app: Hono): void {
         await live.remove(id, '/', true).catch(() => {});
       }
       await executor?.removeSessionData(id);
-      await deps.sessions.remove(id);
-      return c.json({ ok: true, data: { deleted: id } });
+
+      let journalPreserved = false;
+      try {
+        await deps.sessions.remove(id);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes('operations') || message.includes('foreign key')) {
+          journalPreserved = true;
+        } else {
+          throw error;
+        }
+      }
+
+      return c.json({
+        ok: true,
+        data: { deleted: id, journalPreserved },
+      });
     } catch (error) {
       return c.json(errorResponse(error), errorStatus(error));
     }
