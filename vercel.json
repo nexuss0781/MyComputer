@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "hono",
+  "installCommand": "corepack enable && pnpm install --no-frozen-lockfile",
   "functions": {
     "app/src/app.ts": {
       "maxDuration": 60,
