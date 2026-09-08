@@ -21,6 +21,14 @@ const errStatus = (error: unknown): { code: string; message: string } => {
   return { code: 'internal', message: 'unknown error' };
 };
 
+interface WritePlan {
+  dirs: Inode[];
+  inode: Inode;
+  chunks: { seq: number; size: number; checksum: string; data: Uint8Array }[];
+  contentId: string;
+  result: WriteResult;
+}
+
 export class FsEngine {
   private readonly cache = new Map<string, Inode>();
 
@@ -46,7 +54,7 @@ export class FsEngine {
     }
   }
 
-  private async ensureParents(sessionId: string, path: string): Promise<void> {
+  private async collectParents(sessionId: string, path: string): Promise<Inode[]> {
     let parent = parentOf(path);
     const chain: string[] = [];
     while (parent !== null && parent !== '/') {
@@ -58,7 +66,7 @@ export class FsEngine {
       chain.push(parent);
       parent = parentOf(parent);
     }
-    for (const dirPath of chain.reverse()) {
+    return chain.reverse().map((dirPath) => {
       const inode: Inode = {
         path: dirPath,
         sessionId,
@@ -71,9 +79,9 @@ export class FsEngine {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      await this.backend.upsertInode(inode);
       this.cache.set(cacheKey(sessionId, dirPath), inode);
-    }
+      return inode;
+    });
   }
 
   async write(
@@ -84,16 +92,28 @@ export class FsEngine {
   ): Promise<WriteResult> {
     const path = normalizePath(rawPath);
     const started = Date.now();
-    const input = { path, bytes: content.byteLength };
+    const input = {
+      path,
+      bytes: content.byteLength,
+      mime: mime ?? null,
+      content: Buffer.from(content).toString('base64'),
+    };
     try {
-      const result = await this.writeInternal(sessionId, path, content, mime);
+      const plan = await this.computeWrite(sessionId, path, content, mime);
+      const result = {
+        path: plan.result.path,
+        size: plan.result.size,
+        checksum: plan.result.checksum,
+        blocks: plan.result.blocks,
+      };
       await this.oplog.record('write', sessionId, input, result, 'ok', Date.now() - started);
+      this.applyWrite(sessionId, plan);
       return result;
     } catch (error) {
       await this.oplog.recordError(
         'write',
         sessionId,
-        input,
+        { path, bytes: content.byteLength },
         errStatus(error),
         Date.now() - started,
       );
@@ -101,16 +121,16 @@ export class FsEngine {
     }
   }
 
-  private async writeInternal(
+  private async computeWrite(
     sessionId: string,
     path: string,
     content: Uint8Array,
     mime?: string,
-  ): Promise<WriteResult> {
+  ): Promise<WritePlan> {
     if (path === '/') throw new PathError('cannot write the root directory');
     const existing = await this.backend.getInode(sessionId, path);
     if (existing?.type === 'dir') throw new ConflictError(`${path} is a directory`);
-    await this.ensureParents(sessionId, path);
+    const dirs = await this.collectParents(sessionId, path);
 
     const chunks = chunkBytes(content, this.maxChunkBytes);
     const checksum = sha256Hex(content);
@@ -126,10 +146,20 @@ export class FsEngine {
       createdAt: existing?.createdAt ?? new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    await this.backend.upsertInode(inode);
-    await this.backend.insertBlocks(sessionId, path, randomUUID(), chunks);
-    this.cache.set(cacheKey(sessionId, path), inode);
-    return { path, size: inode.size, checksum, blocks: chunks.length };
+    return {
+      dirs,
+      inode,
+      chunks,
+      contentId: randomUUID(),
+      result: { path, size: inode.size, checksum, blocks: chunks.length },
+    };
+  }
+
+  private applyWrite(sessionId: string, plan: WritePlan): void {
+    for (const dir of plan.dirs) this.backend.upsertInode(dir);
+    this.backend.upsertInode(plan.inode);
+    this.backend.insertBlocks(sessionId, plan.inode.path, plan.contentId, plan.chunks);
+    this.cache.set(cacheKey(sessionId, plan.inode.path), plan.inode);
   }
 
   async read(sessionId: string, rawPath: string, offset = 0, limit?: number): Promise<ReadResult> {
@@ -176,7 +206,11 @@ export class FsEngine {
   async append(sessionId: string, rawPath: string, content: Uint8Array): Promise<WriteResult> {
     const path = normalizePath(rawPath);
     const started = Date.now();
-    const input = { path, bytes: content.byteLength };
+    const input = {
+      path,
+      bytes: content.byteLength,
+      content: Buffer.from(content).toString('base64'),
+    };
     try {
       const existing = await this.resolve(sessionId, path);
       if (existing.type !== 'file')
@@ -185,8 +219,15 @@ export class FsEngine {
       const merged = new Uint8Array(current.byteLength + content.byteLength);
       merged.set(current, 0);
       merged.set(content, current.byteLength);
-      const result = await this.writeInternal(sessionId, path, merged, existing.mime ?? undefined);
+      const plan = await this.computeWrite(sessionId, path, merged, existing.mime ?? undefined);
+      const result = {
+        path: plan.result.path,
+        size: plan.result.size,
+        checksum: plan.result.checksum,
+        blocks: plan.result.blocks,
+      };
       await this.oplog.record('append', sessionId, input, result, 'ok', Date.now() - started);
+      this.applyWrite(sessionId, plan);
       return result;
     } catch (error) {
       await this.oplog.recordError(
@@ -209,6 +250,7 @@ export class FsEngine {
       const existing = await this.backend.getInode(sessionId, path);
       if (existing?.type === 'dir' && recursive) return { path };
       if (existing) throw new ConflictError(`${path} already exists`);
+      const parents = recursive ? await this.collectParents(sessionId, path) : [];
       if (!recursive) {
         const parent = parentOf(path);
         if (parent !== null) {
@@ -216,8 +258,6 @@ export class FsEngine {
           if (!p) throw new NotFoundError(`parent ${parent} does not exist`);
           if (p.type !== 'dir') throw new ConflictError(`${parent} is not a directory`);
         }
-      } else {
-        await this.ensureParents(sessionId, path);
       }
       const inode: Inode = {
         path,
@@ -231,10 +271,11 @@ export class FsEngine {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      await this.backend.upsertInode(inode);
-      this.cache.set(cacheKey(sessionId, path), inode);
       const result = { path };
       await this.oplog.record('mkdir', sessionId, input, result, 'ok', Date.now() - started);
+      for (const dir of parents) this.backend.upsertInode(dir);
+      this.backend.upsertInode(inode);
+      this.cache.set(cacheKey(sessionId, path), inode);
       return result;
     } catch (error) {
       await this.oplog.recordError(

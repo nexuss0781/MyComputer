@@ -2,7 +2,10 @@ import { sessionCreateSchema } from '@mycomputer/shared';
 import type { Hono } from 'hono';
 import type { Executor } from '../../core/executor.js';
 import type { FsEngine } from '../../core/fs-engine.js';
+import { runPersistenceSelftest } from '../../core/persistence-selftest.js';
 import { type SelftestEnvironment, runSelftest } from '../../core/selftest.js';
+import type { SyncWriter } from '../../core/sync.js';
+import type { PersistenceSelftestFactory } from '../runtime.js';
 import type { SessionStore } from '../session.js';
 import { errorResponse, errorStatus } from './fs.js';
 
@@ -10,6 +13,8 @@ export interface SysDeps {
   engine: () => FsEngine | null;
   sessions: SessionStore;
   executor: () => Executor | null;
+  sync: SyncWriter | null;
+  persistenceFactory: () => PersistenceSelftestFactory | null;
   environment: SelftestEnvironment;
 }
 
@@ -59,6 +64,11 @@ export function sysRoutes(deps: SysDeps, app: Hono): void {
         await live.remove(id, '/', true).catch(() => {});
       }
       await executor?.removeSessionData(id);
+      if (deps.sync) {
+        // Buffered deletions persist only on flush; must be durable before we
+        // drop the session row (FK to inodes/meta/blocks/executions).
+        await deps.sync.flush();
+      }
 
       let journalPreserved = false;
       try {
@@ -93,9 +103,24 @@ export function sysRoutes(deps: SysDeps, app: Hono): void {
         503,
       );
     const result = await runSelftest(live, deps.environment, deps.sessions, deps.executor());
-    return c.json(
-      { ok: result.ok, data: { ...result, endpointTookMs: Date.now() - start } },
-      result.ok ? 200 : 500,
-    );
+    const payload = { ...result, endpointTookMs: Date.now() - start };
+    const factory = deps.persistenceFactory();
+    if (factory && result.ok) {
+      const p4 = await runPersistenceSelftest(factory);
+      Object.assign(payload, {
+        persistence: {
+          total: p4.total,
+          passed: p4.passed,
+          failed: p4.failed,
+          flushBatchMs: p4.flushBatchMs,
+        },
+        total: payload.total + p4.total,
+        passed: payload.passed + p4.passed,
+        failed: payload.failed + p4.failed,
+        failures: [...payload.failures, ...p4.failures],
+        ok: payload.ok && p4.ok,
+      });
+    }
+    return c.json({ ok: payload.ok, data: payload }, payload.ok ? 200 : 500);
   });
 }

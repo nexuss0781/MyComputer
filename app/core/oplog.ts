@@ -15,6 +15,7 @@ export interface OplogRecord {
 export interface JournalStore {
   insert(record: OplogRecord): Promise<void>;
   countForSession(sessionId: string): Promise<number>;
+  allAfter(sessionId: string, after: Date): Promise<OplogRecord[]>;
 }
 
 export class MemoryJournalStore implements JournalStore {
@@ -26,6 +27,12 @@ export class MemoryJournalStore implements JournalStore {
 
   async countForSession(sessionId: string): Promise<number> {
     return this.records.filter((r) => r.sessionId === sessionId).length;
+  }
+
+  async allAfter(sessionId: string, after: Date): Promise<OplogRecord[]> {
+    return this.records.filter(
+      (r) => r.sessionId === sessionId && new Date(r.createdAt).getTime() > after.getTime(),
+    );
   }
 }
 
@@ -66,5 +73,9 @@ export class Oplog {
 
   async journalCount(sessionId: string): Promise<number> {
     return this.store.countForSession(sessionId);
+  }
+
+  async allAfter(sessionId: string, after: Date): Promise<OplogRecord[]> {
+    return this.store.allAfter(sessionId, after);
   }
 }

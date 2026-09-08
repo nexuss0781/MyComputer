@@ -34,6 +34,13 @@ describe('app routes', () => {
     await expect(res.json()).resolves.toEqual({ ok: false, error: 'not_found' });
   });
 
+  it('fsync reports sync unavailable on the memory engine', async () => {
+    const app = createApp();
+    const res = await app.request('/api/sys/fsync', { method: 'POST' });
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({ ok: false, error: 'sync unavailable' });
+  });
+
   it('selftest passes on the memory engine', async () => {
     const result = await runSelftest(makeMemoryEngine(), 'memory', new MemorySessionStore());
     expect(result.ok).toBe(true);

@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Execution } from '@mycomputer/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SyncWriter } from './sync.js';
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_TIMEOUT_MS = 120_000;
@@ -142,6 +143,39 @@ export class SupabaseExecStore implements ExecStore {
   async removeSessionData(sessionId: string): Promise<void> {
     const { error } = await this.db.from('executions').delete().eq('session_id', sessionId);
     if (error) throw new Error(`executions cleanup failed: ${error.message}`);
+  }
+}
+
+/**
+ * ExecStore whose inserts ride the SyncWriter batch flush instead of issuing
+ * an immediate per-run INSERT. Reads overlay the unflushed buffer first;
+ * list/cleanup flush so durable state matches the journal before querying.
+ */
+export class BufferedExecStore implements ExecStore {
+  constructor(
+    private readonly durable: ExecStore,
+    private readonly writer: SyncWriter,
+  ) {}
+
+  async insert(sessionId: string, execution: Execution): Promise<Execution> {
+    this.writer.queueInsertExecution(sessionId, execution);
+    return execution;
+  }
+
+  async get(sessionId: string, execId: string): Promise<Execution | null> {
+    const pending = this.writer.execution(sessionId, execId);
+    if (pending) return pending;
+    return this.durable.get(sessionId, execId);
+  }
+
+  async list(sessionId: string, offset?: number, limit?: number): Promise<Execution[]> {
+    await this.writer.flush();
+    return this.durable.list(sessionId, offset, limit);
+  }
+
+  async removeSessionData(sessionId: string): Promise<void> {
+    this.writer.queueRemoveSessionData(sessionId);
+    await this.writer.flush();
   }
 }
 
