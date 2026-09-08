@@ -56,14 +56,28 @@ idempotency/conflict, list scoping, move/copy subtree + content, recursive
 delete guard, checksum match, every mutating op journaled). Live HTTP flow
 tested via `app.test.ts`. Bytea stored as PostgREST hex (`\x…`).
 
-## Phase 3 — Terminal
+## Phase 3 — Agent Tool Surface (Ethco-compatible Terminal)
 
-- [ ] `executor` — child_process.spawn on session scratch
-- [ ] stdout/stderr streaming into `executions`
-- [ ] env isolation + duration cap + abort signal
-- [ ] routes `/api/exec/run`, `/api/exec/log`
-- [ ] journal linkage (exec op → exec_id)
-- [ ] unit + integration tests
+- [x] `executor` — child_process.spawn on session scratch
+- [x] stdout/stderr streaming into `executions` (4 MiB cap)
+- [x] env isolation (allowlist) + timeout cap (30s/120s) + abort signal
+- [x] routes `/api/exec/run`, `/api/exec/log` (replay by execId + list w/ pagination)
+- [x] journal linkage (exec op → exec_id, op_type `exec`)
+- [x] `run_command` tool backed by executor; `read`/`view_file`/`write`/`create_file`/`edit`/`edit_file` aliases
+- [x] unit + integration tests (35 app tests)
+
+**P3 exit report (2026-09-08, commits `bca97e2`→`51a7493`):** Local gates all
+green (`pnpm typecheck` 5 pkgs, `pnpm lint`, `pnpm format:check`, `pnpm test`).
+Live proof on Vercel+Supabase: `POST /api/sys/selftest` →
+`{"ok":true,"environment":"supabase","total":18,"passed":18,"failed":0,
+"failures":[],"durationMs":10980,"journalOps":34}`. `POST /api/exec/run`
+(`echo phase3-prod-ok && node --version` → exit 0, `v24.19.0`, 20 ms) then
+`POST /api/exec/log` replays by execId (line-limited) and lists per session.
+`run_command` via `/api/tools/execute` returns the Ethco shape and persists a
+row (visible under `ethco-workspace` executions). DELETE session now clears
+executions while preserving the immutable journal + session row (append-only
+FK) instead of hard-failing. Known: Vercel CLI deploy broken (workspace:*
+protocol); rely on git-integration auto-deploy.
 
 ## Phase 4 — Quick Persistence
 

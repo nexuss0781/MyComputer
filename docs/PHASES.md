@@ -64,22 +64,30 @@ traversal guard 400, every mutating op journaled.
 
 ---
 
-## Phase 3 — Terminal
+## Phase 3 — Agent Tool Surface (Ethco-compatible Terminal)
 
-**Goal:** execute commands, capture output.
+**Goal:** execute commands through the agent tool bridge with per-session,
+env-isolated, journaled semantics, persisted to `executions`.
 
-- [ ] `executor` — `child_process.spawn`, cwd = session scratch on `/tmp`
-- [ ] capture stdout/stderr streaming into `executions` (typed client or RPC)
-- [ ] env isolation, duration cap (mirrors `maxDuration`), signal on abort
-- [ ] exit code + duration persisted
-- [ ] route `/api/exec/run`, `/api/exec/log` (paginate captured output)
-- [ ] journal linkage: exec op → `exec_id`
+- [x] `executor` — `child_process.spawn`, cwd = session scratch on `/tmp`
+- [x] capture stdout/stderr streaming into `executions` (RPC; 4 MiB cap)
+- [x] env isolation (allowlist), timeout cap (30s default / 120s max), signal on abort
+- [x] exit code + duration persisted (`timedOut`/`truncated` inferred on read)
+- [x] route `/api/exec/run`, `/api/exec/log` (paginate captured output, replay by `execId`)
+- [x] journal linkage: exec op → `exec_id` (op_type `exec`)
+- [x] `run_command` tool (Ethco shape) backed by the executor; `read`/`edit` aliases
 
 Tests:
-- [ ] unit: executor against fixture commands
-- [ ] integration: run + log via Hono
+- [x] unit: executor against fixture commands, env isolation, timeout kill, stores
+- [x] integration: run + log + tool persistence via Hono; selftest 14 → 18 suites
 
-**Exit:** `exec/run` returns output with exit code; output replayable via `exec/log`.
+**Exit:** `exec/run` returns output with exit code; output replayable via `exec/log`;
+`run_command` persists every call.
+
+**Status: COMPLETE** — live proof: prod selftest `18/18` on Vercel+Supabase (`journalOps 34`),
+`exec/run` → `exec/log` replay round-trip (v24.19.0), tool run persisted under
+`ethco-workspace`, DELETE session clears executions while preserving the immutable
+journal (append-only FK). Local: 35 app tests green, gates clean.
 
 **→ Milestone M1.**
 

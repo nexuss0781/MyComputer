@@ -10,7 +10,7 @@ operations for AI training on GitHub Actions.
 github.com/nexuss0781/MyComputer (public), Supabase schema applied + verified,
 prod selftest `14/14` live. Phase 2 exit report in `docs/TODO.md`.
 
-**Current: Phase 3 — Agent Tool Surface (Ethco-compatible terminal).**
+**Current: Phase 4 — Quick Persistence (sub-ms hot path).**
 
 ## Roadmap
 
@@ -19,7 +19,8 @@ prod selftest `14/14` live. Phase 2 exit report in `docs/TODO.md`.
 | 0     | Spec & Design                         | Docs (done)                                         |
 | 1     | Scaffold                              | Monorepo, TS, CI, DB migrations, dev env             |
 | 2     | FS Engine                             | File ops + op journal on the virtual disc            |
-| 3     | Terminal                              | Command execution with captured output               |
+| 3     | Agent Tool Surface                    | Command execution, captured output, tool bridge      |
+| 4     | Quick Persistence                     | Sub-ms batch write path to Supabase                  |
 | 4     | Quick Persistence                     | Sub-ms batch write path to Supabase                  |
 | 5     | Telegram Sink                         | Chunked upload/manifest, cold reads via bridge       |
 | 6     | SDK                                   | `@mycomputer/sdk` for agents                         |
@@ -30,6 +31,8 @@ prod selftest `14/14` live. Phase 2 exit report in `docs/TODO.md`.
 
 - **M1 (Phases 1–3):** agent can operate a virtual filesystem and a terminal,
   everything journaled. Vertical slice: `write → read → list → exec`.
+  Phase 3 complete: prod selftest `18/18`, `exec/run` + `exec/log` live, tools
+  bridge runs commands into the same persisting executor.
 - **M2 (Phases 4–5):** durability everywhere. Writes land in Supabase fast;
   content flushed to Telegram forever; cold reads restore any file.
 - **M3 (Phases 6–7):** an agent drives the computer via SDK; heavy work auto-
