@@ -22,6 +22,8 @@ export {
   statSchema,
   checksumSchema,
   sessionCreateSchema,
+  execRunSchema,
+  execLogSchema,
 } from './schemas.js';
 export type {
   WriteInput,
@@ -36,4 +38,5 @@ export type {
   WriteResult,
   ReadResult,
   SessionRow,
+  Execution,
 } from './schemas.js';

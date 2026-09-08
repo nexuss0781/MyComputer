@@ -1,5 +1,6 @@
 import { loadEnv } from '@mycomputer/shared';
 import { type SupabaseClient, createClient } from '@supabase/supabase-js';
+import { Executor, MemoryExecStore, SupabaseExecStore } from '../core/executor.js';
 import { FsEngine } from '../core/fs-engine.js';
 import { SupabaseJournalStore } from '../core/journal-supabase.js';
 import { MemoryBackend } from '../core/memory-backend.js';
@@ -11,6 +12,7 @@ import { MemorySessionStore, type SessionStore, SupabaseSessionStore } from './s
 export interface Runtime {
   engine: FsEngine | null;
   sessions: SessionStore;
+  executor: Executor | null;
   environment: SelftestEnvironment;
 }
 
@@ -36,6 +38,7 @@ export function getRuntime(): Runtime {
     runtimeSingleton = {
       engine: new FsEngine(new MemoryBackend(), memoryJournal),
       sessions: new MemorySessionStore(),
+      executor: new Executor(new MemoryExecStore()),
       environment: 'memory',
     };
     return runtimeSingleton;
@@ -46,6 +49,7 @@ export function getRuntime(): Runtime {
   runtimeSingleton = {
     engine,
     sessions: new SupabaseSessionStore(db),
+    executor: new Executor(new SupabaseExecStore(db)),
     environment: 'supabase',
   };
   return runtimeSingleton;

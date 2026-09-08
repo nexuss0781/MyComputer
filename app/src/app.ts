@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { execRoutes } from './routes/exec.js';
 import { fsRoutes } from './routes/fs.js';
 import { sysRoutes } from './routes/sys.js';
 import { toolRoutes } from './routes/tools.js';
@@ -20,12 +21,24 @@ export function createApp(): Hono {
   fsRoutes(() => runtime.engine, app);
 
   sysRoutes(
-    { engine: () => runtime.engine, sessions: runtime.sessions, environment: runtime.environment },
+    {
+      engine: () => runtime.engine,
+      sessions: runtime.sessions,
+      executor: () => runtime.executor,
+      environment: runtime.environment,
+    },
     app,
   );
 
-  if (runtime.engine) {
-    toolRoutes({ engine: runtime.engine, sessions: runtime.sessions }, app);
+  if (runtime.executor) {
+    execRoutes({ engine: () => runtime.engine, executor: () => runtime.executor }, app);
+  }
+
+  if (runtime.engine && runtime.executor) {
+    toolRoutes(
+      { engine: runtime.engine, sessions: runtime.sessions, executor: runtime.executor },
+      app,
+    );
   }
 
   app.all('*', (c) => c.json({ ok: false, error: 'not_found' }, 404));

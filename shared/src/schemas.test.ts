@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   deleteSchema,
+  execLogSchema,
+  execRunSchema,
   mkdirSchema,
   moveSchema,
   readSchema,
@@ -57,5 +59,27 @@ describe('fs schemas', () => {
     expect(sessionCreateSchema.safeParse({}).success).toBe(true);
     expect(sessionCreateSchema.safeParse({ name: 'agent', meta: { x: 1 } }).success).toBe(true);
     expect(sessionCreateSchema.safeParse({ name: '' }).success).toBe(false);
+  });
+
+  it('execRunSchema requires a non-empty command', () => {
+    const base = { sessionId: crypto.randomUUID() };
+    expect(execRunSchema.safeParse({ ...base, command: 'echo hi' }).success).toBe(true);
+    expect(execRunSchema.safeParse({ ...base, command: '' }).success).toBe(false);
+    expect(execRunSchema.safeParse(base).success).toBe(false);
+  });
+
+  it('execRunSchema bounds timeout and allows optional cwd', () => {
+    const base = { sessionId: crypto.randomUUID(), command: 'ls' };
+    expect(execRunSchema.safeParse({ ...base, timeout: 0 }).success).toBe(false);
+    expect(execRunSchema.safeParse({ ...base, timeout: 121000 }).success).toBe(false);
+    expect(execRunSchema.safeParse({ ...base, timeout: 5000, cwd: '.' }).success).toBe(true);
+  });
+
+  it('execLogSchema paginates and targets one execution', () => {
+    const base = { sessionId: crypto.randomUUID() };
+    expect(execLogSchema.safeParse(base).success).toBe(true);
+    expect(execLogSchema.safeParse({ ...base, execId: crypto.randomUUID() }).success).toBe(true);
+    expect(execLogSchema.safeParse({ ...base, limit: 0 }).success).toBe(false);
+    expect(execLogSchema.safeParse({ ...base, offset: 2, limit: 50 }).success).toBe(true);
   });
 });

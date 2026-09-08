@@ -39,7 +39,8 @@ describe('app routes', () => {
     expect(result.ok).toBe(true);
     expect(result.failed).toBe(0);
     expect(result.total).toBeGreaterThan(0);
-  });
+    expect(result.total).toBe(18);
+  }, 60000);
 
   it('fs endpoints round-trip a full write/read/delete flow over http', async () => {
     const app = createApp();
@@ -190,5 +191,113 @@ describe('app routes', () => {
     const body = (await res.json()) as { success: boolean; result: { error: string } };
     expect(body.success).toBe(false);
     expect(body.result.error).toContain('not implemented');
+  });
+
+  it('exec run executes a command and log replays its output', async () => {
+    const app = createApp();
+    const created = await app.request('/api/sys/session', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'exec-test' }),
+    });
+    const session = ((await created.json()) as { data: { id: string } }).data;
+
+    const runRes = await app.request('/api/exec/run', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sessionId: session.id, command: 'echo exec-http-ok' }),
+    });
+    expect(runRes.status).toBe(200);
+    const run = (await runRes.json()) as {
+      ok: boolean;
+      data: { execId: string; exitCode: number; stdout: string; createdAt: string };
+    };
+    expect(run.ok).toBe(true);
+    expect(run.data.exitCode).toBe(0);
+    expect(run.data.stdout).toContain('exec-http-ok');
+    expect(run.data.execId).toBeTruthy();
+
+    const logRes = await app.request('/api/exec/log', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sessionId: session.id, execId: run.data.execId }),
+    });
+    expect(logRes.status).toBe(200);
+    const log = (await logRes.json()) as { ok: boolean; data: { stdout: string } };
+    expect(log.ok).toBe(true);
+    expect(log.data.stdout).toContain('exec-http-ok');
+  });
+
+  it('exec log lists executions and rejects unknown exec ids', async () => {
+    const app = createApp();
+    const created = await app.request('/api/sys/session', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'exec-list-test' }),
+    });
+    const session = ((await created.json()) as { data: { id: string } }).data;
+
+    await app.request('/api/exec/run', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sessionId: session.id, command: 'echo one' }),
+    });
+    await app.request('/api/exec/run', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sessionId: session.id, command: 'echo two' }),
+    });
+
+    const listRes = await app.request('/api/exec/log', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sessionId: session.id }),
+    });
+    expect(listRes.status).toBe(200);
+    const list = (await listRes.json()) as {
+      data: { total: number; executions: Array<{ command: string }> };
+    };
+    expect(list.data.total).toBe(2);
+    expect(list.data.executions[0]?.command).toBe('echo two');
+
+    const missingRes = await app.request('/api/exec/log', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sessionId: session.id, execId: crypto.randomUUID() }),
+    });
+    expect(missingRes.status).toBe(404);
+  });
+
+  it('run_command via tools persists an execution row', async () => {
+    const app = createApp();
+    const res = await app.request('/api/tools/execute', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'run_command', args: { command: 'echo persisted-via-tools' } }),
+    });
+    expect(res.status).toBe(200);
+    const toolResult = (await res.json()) as { success: boolean; result: { stdout: string } };
+    expect(toolResult.success).toBe(true);
+    expect(toolResult.result.stdout).toContain('persisted-via-tools');
+
+    const sessionsRes = await app.request('/api/sys/session');
+    const sessions = ((await sessionsRes.json()) as { data: Array<{ id: string; name: string }> })
+      .data;
+    const workspace = sessions.find((s) => s.name === 'ethco-workspace');
+    if (!workspace) throw new Error('workspace session was not created');
+
+    const listRes = await app.request('/api/exec/log', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sessionId: workspace.id }),
+    });
+    expect(listRes.status).toBe(200);
+    const list = (await listRes.json()) as {
+      ok: boolean;
+      data: { executions: Array<{ command: string; stdout: string }> };
+    };
+    expect(list.ok).toBe(true);
+    const found = list.data.executions.find((e) => e.command === 'echo persisted-via-tools');
+    expect(found).toBeTruthy();
   });
 });

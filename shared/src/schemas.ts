@@ -58,6 +58,20 @@ export const deleteSchema = z.object({
 export const statSchema = basePathBody;
 export const checksumSchema = basePathBody;
 
+export const execRunSchema = z.object({
+  sessionId: sessionIdSchema,
+  command: z.string().min(1).max(10000),
+  cwd: z.string().min(1).max(4096).optional(),
+  timeout: z.number().int().min(1).max(120000).optional(),
+});
+
+export const execLogSchema = z.object({
+  sessionId: sessionIdSchema,
+  execId: sessionIdSchema.optional(),
+  offset: z.number().int().nonnegative().optional(),
+  limit: z.number().int().positive().max(1000).optional(),
+});
+
 export const sessionCreateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   meta: z.record(z.unknown()).optional(),
@@ -111,4 +125,18 @@ export interface SessionRow {
   name: string;
   createdAt: string;
   meta: Record<string, unknown>;
+}
+
+export interface Execution {
+  execId: string;
+  sessionId: string;
+  command: string;
+  cwd: string | null;
+  stdout: string;
+  stderr: string;
+  exitCode: number | null;
+  durationMs: number;
+  timedOut: boolean;
+  truncated: boolean;
+  createdAt: string;
 }

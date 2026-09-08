@@ -1,19 +1,21 @@
-import { exec } from 'node:child_process';
-import { existsSync, mkdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import type { Executor } from '../core/executor.js';
 import type { FsEngine } from '../core/fs-engine.js';
 import type { SessionStore } from './session.js';
 
 export interface ToolExecutorDeps {
   engine: FsEngine;
   sessions: SessionStore;
+  executor: Executor;
 }
 
 let defaultSessionId: string | null = null;
 
 export async function getOrCreateWorkspaceSession(deps: ToolExecutorDeps): Promise<string> {
-  if (defaultSessionId) return defaultSessionId;
+  if (defaultSessionId) {
+    const known = (await deps.sessions.list()).find((s) => s.id === defaultSessionId);
+    if (known) return defaultSessionId;
+    defaultSessionId = null;
+  }
   const existing = (await deps.sessions.list()).find((s) => s.name === 'ethco-workspace');
   if (existing) {
     defaultSessionId = existing.id;
@@ -30,13 +32,6 @@ function resolveSessionPath(rawPath: string | undefined, root = '/'): string {
   if (p === '.' || p === './') return root;
   const stripped = p.startsWith('./') ? p.slice(2) : p;
   return stripped.startsWith('/') ? stripped : `/${stripped}`;
-}
-
-function getScratchDir(sessionId: string, subdir?: string): string {
-  const base = join(tmpdir(), `ws-${sessionId}`);
-  const target = subdir ? join(base, subdir) : base;
-  if (!existsSync(target)) mkdirSync(target, { recursive: true });
-  return base;
 }
 
 function globMatch(filepath: string, pattern: string): boolean {
@@ -77,43 +72,6 @@ async function resolveDirInodes(
   return paths;
 }
 
-async function runCommand(
-  command: string,
-  cwd: string,
-  timeoutMs: number,
-): Promise<Record<string, unknown>> {
-  const startTime = Date.now();
-  return new Promise((resolve) => {
-    exec(
-      command,
-      {
-        cwd,
-        timeout: timeoutMs,
-        maxBuffer: 10 * 1024 * 1024,
-        env: { ...process.env, PAGER: 'cat' },
-      },
-      (error, stdout, stderr) => {
-        const executionTimeMs = Date.now() - startTime;
-        const exitCode = error
-          ? ((error as NodeJS.ErrnoException & { code?: number }).code ?? 1)
-          : 0;
-        const wasKilled = Boolean(error && (error as { killed?: boolean }).killed);
-        resolve({
-          command,
-          cwd: '.',
-          stdout: stdout || '',
-          stderr: stderr || '',
-          exitCode,
-          executionTimeMs,
-          killed: wasKilled,
-          success: exitCode === 0 && !error,
-          error: error ? error.message : undefined,
-        });
-      },
-    );
-  });
-}
-
 export async function executeWorkspaceTool(
   name: string,
   args: Record<string, unknown>,
@@ -144,16 +102,37 @@ export async function executeWorkspaceTool(
           return { error: 'command is required and must be a string.' };
 
         const rawCwd = (args.cwd || args.workdir) as string | undefined;
-        const scratchBase = getScratchDir(sessionId);
-        const targetCwd = rawCwd ? resolveSessionPath(rawCwd, scratchBase) : scratchBase;
-        if (!existsSync(targetCwd)) {
-          return { error: `Working directory does not exist: "${rawCwd ?? '.'}"` };
-        }
         const timeoutMs =
           typeof args.timeout === 'number' && args.timeout > 0
             ? Math.min(args.timeout, 120000)
             : 30000;
-        return runCommand(command, targetCwd, timeoutMs);
+
+        const execution = await deps.executor.run(sessionId, {
+          command,
+          cwd: rawCwd ? rawCwd.replace(/^\.\//, '') : undefined,
+          timeoutMs,
+        });
+
+        await engine.oplog.record(
+          'exec',
+          sessionId,
+          { command, cwd: execution.cwd },
+          { execId: execution.execId, exitCode: execution.exitCode, timedOut: execution.timedOut },
+          execution.timedOut ? 'error' : 'ok',
+          execution.durationMs,
+        );
+
+        return {
+          command,
+          cwd: '.',
+          stdout: execution.stdout,
+          stderr: execution.stderr,
+          exitCode: execution.exitCode ?? (execution.timedOut ? 124 : 1),
+          executionTimeMs: execution.durationMs,
+          killed: execution.timedOut,
+          success: execution.exitCode === 0 && !execution.timedOut,
+          error: execution.timedOut ? `Command timed out after ${timeoutMs}ms` : undefined,
+        };
       }
 
       case 'view_file': {

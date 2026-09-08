@@ -1,5 +1,6 @@
 import { ConflictError, NotFoundError, PathError } from '@mycomputer/shared';
 import type { SessionStore } from '../src/session.js';
+import { Executor, MemoryExecStore } from './executor.js';
 import { FsEngine } from './fs-engine.js';
 import { MemoryBackend } from './memory-backend.js';
 import { MemoryJournalStore, Oplog } from './oplog.js';
@@ -43,8 +44,59 @@ async function expectError<T extends Error>(
   throw new Error('expected an error, but none was thrown');
 }
 
-function buildSuite(sessionId: string, engine: FsEngine): Suite[] {
+function buildSuite(sessionId: string, engine: FsEngine, executor: Executor): Suite[] {
   return [
+    {
+      name: 'run_command captures stdout and reports exit code 0',
+      run: async () => {
+        const execution = await executor.run(sessionId, {
+          command: `echo selftest-ok-${Date.now()}`,
+        });
+        expectEqual(execution.exitCode, 0);
+        expectEqual(execution.stdout.includes('selftest-ok'), true);
+        expectEqual(execution.durationMs >= 0, true);
+      },
+    },
+    {
+      name: 'run_command reports non-zero exit and stderr',
+      run: async () => {
+        const execution = await executor.run(sessionId, {
+          command: 'echo boom 1>&2; exit 7',
+        });
+        expectEqual(execution.exitCode, 7);
+        expectEqual(execution.stderr.includes('boom'), true);
+      },
+    },
+    {
+      name: 'run_command timeout is applied and kills the process',
+      run: async () => {
+        const execution = await executor.run(sessionId, {
+          command: 'sleep 30',
+          timeoutMs: 400,
+        });
+        expectEqual(execution.timedOut, true);
+        expectEqual(execution.exitCode, null);
+      },
+    },
+    {
+      name: 'execution persists to the store and journal covers it',
+      run: async () => {
+        const before = await engine.oplog.journalCount(sessionId);
+        const execution = await executor.run(sessionId, { command: 'echo persisted' });
+        await engine.oplog.record(
+          'exec',
+          sessionId,
+          { command: execution.command },
+          { execId: execution.execId, exitCode: execution.exitCode },
+          'ok',
+          execution.durationMs,
+        );
+        const replayed = await executor.get(sessionId, execution.execId);
+        expectEqual(replayed?.stdout.includes('persisted'), true);
+        const after = await engine.oplog.journalCount(sessionId);
+        expectEqual(after - before, 1);
+      },
+    },
     {
       name: 'path traversal rejects .. (invalid_path)',
       run: async () => {
@@ -183,6 +235,7 @@ export async function runSelftest(
   engine: FsEngine,
   environment: SelftestEnvironment,
   sessions: SessionStore,
+  executor?: Executor | null,
 ): Promise<SelftestResult> {
   const started = Date.now();
   const session = await sessions.create({ name: 'selftest' });
@@ -190,7 +243,7 @@ export async function runSelftest(
 
   await engine.sessionInit(sessionId);
 
-  const suites = buildSuite(sessionId, engine);
+  const suites = buildSuite(sessionId, engine, executor ?? new Executor(new MemoryExecStore()));
   const failures: string[] = [];
   let passed = 0;
 
@@ -208,6 +261,7 @@ export async function runSelftest(
   } catch {
     /* best-effort cleanup */
   }
+  if (executor) await executor.removeSessionData(sessionId);
   await sessions.remove(sessionId).catch(() => {});
 
   return {
