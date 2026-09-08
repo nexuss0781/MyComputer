@@ -49,7 +49,7 @@ function makeFakeTarget(): {
     async insertBlocks(rows) {
       state.calls.push({ key: 'insertBlocks', rows: rows.length });
       for (const row of rows) {
-        state.blocks.set(key(row.sessionId, row.path), { rows: [row] });
+        state.blocks.set(key(row.sessionId, row.path), { rows });
       }
     },
     async insertExecutions(executions) {
@@ -166,6 +166,20 @@ describe('sync writer', () => {
 
     expect(state.calls.filter((c) => c.key === 'persistInodes').length).toBe(1);
     expect(state.calls.filter((c) => c.key === 'insertBlocks').length).toBe(1);
+  });
+
+  it('a second write to the same path replaces, never duplicates, queued blocks', async () => {
+    const { target, state } = makeFakeTarget();
+    const writer = new SyncWriter({ target });
+    const sid = 's1';
+    writer.queuePushBlocks(blocksFor(sid, '/f.txt', 2));
+    expect(writer.blocks(sid, '/f.txt')?.length).toBe(2);
+    writer.queuePushBlocks(blocksFor(sid, '/f.txt', 3));
+    expect(writer.blocks(sid, '/f.txt')?.length).toBe(3);
+
+    await writer.flush();
+    expect(writer.size()).toBe(0);
+    expect(state.blocks.get(`${sid}::/f.txt`)?.rows.length).toBe(3);
   });
 
   it('flush with a failing target retains the buffer for retry', async () => {

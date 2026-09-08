@@ -95,8 +95,12 @@ export class SyncWriter {
     const first = rows[0];
     if (!first) return;
     const k = key(first.sessionId, first.path);
-    const existing = this.delta.insertedBlocks.get(k) ?? [];
-    this.delta.insertedBlocks.set(k, existing.concat(rows.map((r) => ({ ...r }))));
+    // A write replaces the file's whole chunk set; never concatenate onto
+    // previously queued blocks for the same path (append re-writes everything).
+    this.delta.insertedBlocks.set(
+      k,
+      rows.map((r) => ({ ...r })),
+    );
     this.delta.removedBlocks.delete(k);
   }
 
