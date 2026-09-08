@@ -2,6 +2,7 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { makeMemoryEngine, runSelftest } from '../core/selftest.js';
 import { createApp } from './app.js';
 import { resetRuntime } from './runtime.js';
+import { MemorySessionStore } from './session.js';
 
 const b64 = (value: string) => Buffer.from(value, 'utf8').toString('base64');
 const fromB64 = (value: string) => Buffer.from(value, 'base64').toString('utf8');
@@ -34,7 +35,7 @@ describe('app routes', () => {
   });
 
   it('selftest passes on the memory engine', async () => {
-    const result = await runSelftest(makeMemoryEngine(), 'memory');
+    const result = await runSelftest(makeMemoryEngine(), 'memory', new MemorySessionStore());
     expect(result.ok).toBe(true);
     expect(result.failed).toBe(0);
     expect(result.total).toBeGreaterThan(0);

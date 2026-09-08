@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto';
 import { ConflictError, NotFoundError, PathError } from '@mycomputer/shared';
+import type { SessionStore } from '../src/session.js';
 import { FsEngine } from './fs-engine.js';
 import { MemoryBackend } from './memory-backend.js';
 import { MemoryJournalStore, Oplog } from './oplog.js';
@@ -182,9 +182,11 @@ function buildSuite(sessionId: string, engine: FsEngine): Suite[] {
 export async function runSelftest(
   engine: FsEngine,
   environment: SelftestEnvironment,
+  sessions: SessionStore,
 ): Promise<SelftestResult> {
   const started = Date.now();
-  const sessionId = randomUUID();
+  const session = await sessions.create({ name: 'selftest' });
+  const sessionId = session.id;
 
   await engine.sessionInit(sessionId);
 
@@ -206,6 +208,7 @@ export async function runSelftest(
   } catch {
     /* best-effort cleanup */
   }
+  await sessions.remove(sessionId).catch(() => {});
 
   return {
     ok: failures.length === 0,

@@ -73,7 +73,7 @@ export function sysRoutes(deps: SysDeps, app: Hono): void {
         },
         503,
       );
-    const result = await runSelftest(live, deps.environment);
+    const result = await runSelftest(live, deps.environment, deps.sessions);
     return c.json(
       { ok: result.ok, data: { ...result, endpointTookMs: Date.now() - start } },
       result.ok ? 200 : 500,
