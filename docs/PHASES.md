@@ -173,16 +173,31 @@ the fork now bundles one. Exit criteria reached.
 
 **Goal:** agents drive the computer.
 
-- [ ] `@mycomputer/sdk` client: fs + exec + sys surface
-- [ ] typed responses from `shared/` schemas
-- [ ] streamed read/write helpers (range pagination)
-- [ ] session scoping + error mapping
-- [ ] example agent script (eat-your-own-dogfood)
+- [x] `@mycomputer/sdk` client: fs + exec + sys surface
+- [x] typed responses from `shared/` schemas
+- [x] streamed read/write helpers (range pagination)
+- [x] session scoping + error mapping
+- [x] example agent script (eat-your-own-dogfood)
 
 Tests:
-- [ ] sdk integration against running `app` (local)
+- [x] sdk integration against running `app` (local)
 
 **Exit:** a script can `mount` a session and `write`, `exec`, `list` end-to-end.
+
+**Exit report (eaef9cb):** the SDK ships as `@mycomputer/sdk` with a
+zero-runtime-dependency client (`http.ts` transport, flat + envelope handling,
+base64 codec), typed methods for `fs`/`exec`/`sys`, error mapping from shared
+codes to `SdkError`/`NotFoundError`/`PathError`/`ConflictError`, streamed
+`readAll`/`writeAll` helpers (`fssio.ts`), and `mount()` session scoping
+(`session.ts`). Gates green: 15 sdk tests (11 unit + 4 integration) plus
+full-repo 89 tests, `typecheck`, `lint`, `format:check` all clean. The
+integration suite drives the real `app` on the in-memory runtime (session →
+write → chunked read → append → exec → log replay → list → checksum →
+remove), including a multi-block 10 MiB byte-identical round-trip. Verified
+live against prod: `examples/agent.mjs` completed a real session on
+`nexuss-computer.vercel.app` with a 2 MiB+11 B multi-chunk blob restored
+byte-identical and all three checksums matching. Note: on Vercel keep request
+chunks ≤ ~3 MiB (serverless request-body cap ~4.5 MiB; base64 inflates 4/3).
 
 **→ Milestone M3 (with Phase 7).**
 

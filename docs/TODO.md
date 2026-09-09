@@ -128,12 +128,12 @@ Connected to the real bridge at `https://telegram-bot-api-1.onrender.com`
 
 ## Phase 6 — SDK
 
-- [ ] `@mycomputer/sdk` client (fs + exec + sys)
-- [ ] typed responses from shared schemas
-- [ ] streamed read/write helpers (range pagination)
-- [ ] session scoping + error mapping
-- [ ] example agent script
-- [ ] SDK integration test against local app
+- [x] `@mycomputer/sdk` client (fs + exec + sys)
+- [x] typed responses from shared schemas
+- [x] streamed read/write helpers (range pagination)
+- [x] session scoping + error mapping
+- [x] example agent script
+- [x] SDK integration test against local app
 
 ## Phase 7 — GH Actions Worker
 
