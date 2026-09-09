@@ -122,7 +122,7 @@ the same tick, so loss window is sub-second and only in a crash before flush.
 (coldVerified:true), journalOps 34. Four cold suites prove: drain idempotent,
 pruned block restores byte-identical, multi-chunk in-order, checksum-guarded.
 Schema self-heals from Vercel (runtime migration runner, `app/core/migrate.ts`).
-Connected to the real bridge at `https://telegram-bot-api-izqf.onrender.com`
+Connected to the real bridge at `https://telegram-bot-api-1.onrender.com`
 (bot `8910064908`, private channel), Vercel envs `BRIDGE_URL`/`BRIDGE_TOKEN`/
 `BRIDGE_CHANNEL_ID` set. Milestone M2 reached.
 
@@ -174,6 +174,6 @@ Connected to the real bridge at `https://telegram-bot-api-izqf.onrender.com`
 - [x] Vercel project + env verified (Supabase URL/key live — selftest 26/26 in
       production)
 - [x] Bridge base URL + token + channel (hosted bot server owner) → live at
-      `https://telegram-bot-api-izqf.onrender.com`, bot `8910064908`,
+      `https://telegram-bot-api-1.onrender.com`, bot `8910064908`,
       channel `-1004327844302`, Vercel envs `BRIDGE_URL`/`BRIDGE_TOKEN`/
       `BRIDGE_CHANNEL_ID` set

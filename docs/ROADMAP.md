@@ -37,7 +37,7 @@ Phase 2/3/4/5 exit reports in `docs/TODO.md`.
   (Phase 4 complete: prod selftest `22/22`, flush ~106 ms/batch, idempotent
   reconcile); content flushed to Telegram forever (Phase 5 complete: prod
   selftest `26/26`, cold `4/4` byte-identical restore, connected to live
-  bridge `telegram-bot-api-izqf.onrender.com`); cold reads restore any file.
+  bridge `telegram-bot-api-1.onrender.com`); cold reads restore any file.
 - **M3 (Phases 6–7):** an agent drives the computer via SDK; heavy work auto-
   flows to the GH Actions worker and results come back through the journal.
 - **M4 (Phase 8):** proof at scale — multi-GB file through the full pipeline,

@@ -160,8 +160,10 @@ Tests:
 
 **Status: COMPLETE** — live proof: `/api/sys/selftest` `26/26` on Vercel+Supabase
 (`cold{4/4,coldVerified:true}`, persistence `4/4`, `flushBatchMs 92`, `journalOps 34`),
-then connected to the real bridge (`telegram-bot-api-izqf.onrender.com`) via Vercel envs
-`BRIDGE_URL`/`BRIDGE_TOKEN`/`BRIDGE_CHANNEL_ID`. Exit criteria reached.
+then connected to the real bridge (`telegram-bot-api-1.onrender.com`) via Vercel envs
+`BRIDGE_URL`/`BRIDGE_TOKEN`/`BRIDGE_CHANNEL_ID`. File downloads over HTTP required an
+nginx front in front of the self-hosted bot-api (the binary never serves `/file/` itself);
+the fork now bundles one. Exit criteria reached.
 
 **→ Milestone M2.**
 
