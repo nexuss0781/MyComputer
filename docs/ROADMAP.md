@@ -5,13 +5,13 @@ operations for AI training on GitHub Actions.
 
 ## Where we are
 
-**Phase 1 (Scaffold), Phase 2 (FS Engine), and Phase 3 (Agent Tool Surface)
-complete** — docs authored (`docs/Project.md`, `docs/DESIGN.md`), CI green on
-github.com/nexuss0781/MyComputer (public), Supabase schema applied + verified,
-prod selftest `22/22` live (incl. 4 persistence suites, batch flush 106 ms).
-Phase 2/3/4 exit reports in `docs/TODO.md`.
+**Phases 1–5 complete** — docs authored (`docs/Project.md`, `docs/DESIGN.md`),
+CI green on github.com/nexuss0781/MyComputer (public), Supabase schema applied
++ verified (self-healing migrations run from Vercel), prod selftest `26/26`
+live (18 base + 4 persistence + 4 cold, coldVerified true, batch flush ~92 ms).
+Phase 2/3/4/5 exit reports in `docs/TODO.md`.
 
-**Current: Phase 5 — Telegram Sink (full persistence).**
+**Current: Phase 6 — SDK.**
 
 ## Roadmap
 
@@ -35,7 +35,9 @@ Phase 2/3/4 exit reports in `docs/TODO.md`.
   bridge runs commands into the same persisting executor.
 - **M2 (Phases 4–5):** durability everywhere. Writes land in Supabase fast
   (Phase 4 complete: prod selftest `22/22`, flush ~106 ms/batch, idempotent
-  reconcile); content flushed to Telegram forever; cold reads restore any file.
+  reconcile); content flushed to Telegram forever (Phase 5 complete: prod
+  selftest `26/26`, cold `4/4` byte-identical restore, connected to live
+  bridge `telegram-bot-api-izqf.onrender.com`); cold reads restore any file.
 - **M3 (Phases 6–7):** an agent drives the computer via SDK; heavy work auto-
   flows to the GH Actions worker and results come back through the journal.
 - **M4 (Phase 8):** proof at scale — multi-GB file through the full pipeline,

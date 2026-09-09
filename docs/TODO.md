@@ -104,17 +104,27 @@ delete → DELETE session `journalPreserved:true`. Known residual: `move`/`copy`
 `delete` apply-then-journal (not reconcilable replay) — deltas are flushed on
 the same tick, so loss window is sub-second and only in a crash before flush.
 
-## Phase 5 — Telegram Sink
+## Phase 5 — Telegram Sink (P5 EXIT)
 
-- [ ] `sync/telegram-sink` — dirty-block walker
-- [ ] bridge client: upload, bulk, manifest, download, manifest get
-- [ ] streamed chunk upload
-- [ ] backfill `blocks.tg_msg_id`
-- [ ] manifest write per path
-- [ ] cold read path + checksum verify
-- [ ] `/api/sys/fsync`
-- [ ] upload retry/backoff, chunk ordering
-- [ ] contract-mock tests + large-file round-trip test
+- [x] bridge client: `upload` (`sendDocument` multipart), `download` (`getFile` +
+      `/file/bot{token}/` path), sha256 verify, retry/backoff on 429/5xx
+- [x] streamed chunk upload (no full-file buffering)
+- [x] backfill `blocks.tg_msg_id` + `blocks.file_id` (migration `0003`)
+- [x] dirty-block walker `TelegramSink.drain` (idempotent, in-seq order)
+- [x] manifest mapping via Supabase `blocks.tg_msg_id` (no per-path manifest doc)
+- [x] cold read path `ColdBackend` + checksum verify (byte-identical restore)
+- [x] `/api/sys/fsync` (sync drain + replayed ops, returns sink stats)
+- [x] upload retry/backoff, chunk ordering
+- [x] contract-mock tests (MockBridge in selftest) + multi-chunk 16 MiB round-trip
+
+**Exit report (P5):** /api/sys/selftest `26/26` live on Vercel+Supabase —
+`ok:true`, base 18/18, persistence 4/4 (flushBatchMs ~92), cold 4/4
+(coldVerified:true), journalOps 34. Four cold suites prove: drain idempotent,
+pruned block restores byte-identical, multi-chunk in-order, checksum-guarded.
+Schema self-heals from Vercel (runtime migration runner, `app/core/migrate.ts`).
+Connected to the real bridge at `https://telegram-bot-api-izqf.onrender.com`
+(bot `8910064908`, private channel), Vercel envs `BRIDGE_URL`/`BRIDGE_TOKEN`/
+`BRIDGE_CHANNEL_ID` set. Milestone M2 reached.
 
 ## Phase 6 — SDK
 
@@ -149,8 +159,8 @@ the same tick, so loss window is sub-second and only in a crash before flush.
 
 ## Epics
 
-- [ ] **M1** — FS + terminal vertical slice (P2 + P3)
-- [ ] **M2** — fast + forever durability (P4 + P5)
+- [x] **M1** — FS + terminal vertical slice (P2 + P3)
+- [x] **M2** — fast + forever durability (P4 + P5)
 - [ ] **M3** — SDK + long-run worker (P6 + P7)
 - [ ] **M4** — scale proof + benchmarks (P8)
 
@@ -161,6 +171,9 @@ the same tick, so loss window is sub-second and only in a crash before flush.
       integration; `0001_init.sql` applied (tables/triggers/enforcement verified)
 - [x] Migration runner `db/migrate.mjs` (tracked, checksummed) wired as `pnpm db:migrate`
 - [ ] Telegram private channel credentials/access for bridge
-- [x] Vercel project + env verified (Supabase URL/key live — selftest 14/14 in
-      production; bridge URL/token still awaiting)
-- [ ] Bridge base URL + auth (from hosted bot server owner)
+- [x] Vercel project + env verified (Supabase URL/key live — selftest 26/26 in
+      production)
+- [x] Bridge base URL + token + channel (hosted bot server owner) → live at
+      `https://telegram-bot-api-izqf.onrender.com`, bot `8910064908`,
+      channel `-1004327844302`, Vercel envs `BRIDGE_URL`/`BRIDGE_TOKEN`/
+      `BRIDGE_CHANNEL_ID` set

@@ -143,23 +143,25 @@ Commits: `74f9fb2` (feat), `fc3fa01` (watermark idempotence + no exec replay),
 
 **Goal:** content stored forever on Telegram via the hosted bridge.
 
-- [ ] `sync/telegram-sink` — async walker of dirty blocks (`tg_msg_id IS NULL`)
-- [ ] bridge client (in `shared/`): `upload`, `bulk`, `manifest`, `download`,
-       `manifest get`
-- [ ] chunk upload (streamed multipart, no full-file buffering in function)
-- [ ] backfill `blocks.tg_msg_id` after upload ack
-- [ ] manifest write per path: `path → [msg ids]`
-- [ ] cold read path: `fs/read` on old/cold content → bridge download →
-       reassemble → checksum verify
-- [ ] `/api/sys/fsync` — force full-persist of a path/session
-- [ ] retry/backoff on failed upload; never re-order chunks
+- [x] bridge client (in `shared/`): `upload` (`sendDocument` multipart), `download`
+      (`getFile` + `/file/bot{token}/{path}`), sha256 verify, retry/backoff on 429/5xx
+- [x] chunk upload (streamed multipart, no full-file buffering in function)
+- [x] backfill `blocks.tg_msg_id` + `file_id` after upload ack (`migration 0003`)
+- [x] dirty walker: `sync/telegram-sink` — async drain of dirty blocks (`tg_msg_id IS NULL`),
+      idempotent (annotated chunks never re-upload), in-seq order per path
+- [x] cold read path: `ColdBackend` on `fs/read` → hot data empty → sink restore →
+      reassemble → checksum verify
+- [x] `/api/sys/fsync` — forces full-persist of dirty paths + returns sink stats
+- [x] retry/backoff on failed upload; never re-order chunks
 
 Tests:
-- [ ] contract-mock integration (fake bridge) → sink completes uploads
-- [ ] large file via fixtures crossing `MAX_CHUNK_BYTES` → stored → restored byte-identical
+- [x] contract-mock integration (fake bridge + MockBridge in app selftest) → sink completes uploads
+- [x] large file crossing `MAX_CHUNK_BYTES` → stored → restored byte-identical (multi-chunk in order)
 
-**Exit:** write → (async) chunk messages + manifest on channel → cold read
-restores exact bytes.
+**Status: COMPLETE** — live proof: `/api/sys/selftest` `26/26` on Vercel+Supabase
+(`cold{4/4,coldVerified:true}`, persistence `4/4`, `flushBatchMs 92`, `journalOps 34`),
+then connected to the real bridge (`telegram-bot-api-izqf.onrender.com`) via Vercel envs
+`BRIDGE_URL`/`BRIDGE_TOKEN`/`BRIDGE_CHANNEL_ID`. Exit criteria reached.
 
 **→ Milestone M2.**
 
