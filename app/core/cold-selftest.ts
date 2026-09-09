@@ -71,7 +71,9 @@ export async function runColdSelftest(deps: ColdSelftestDeps): Promise<ColdSelft
       await deps.writePath(sessionId, '/cold.txt', new Uint8Array(Buffer.from(content)));
       await deps.sink.drain();
       await deps.prunePath(sessionId, '/cold.txt');
-      const restored = await deps.coldRead(sessionId, '/cold.txt');
+      const restored = Buffer.from(await deps.coldRead(sessionId, '/cold.txt'), 'base64').toString(
+        'utf8',
+      );
       expectEqual(restored, content);
       coldVerified = true;
     });
