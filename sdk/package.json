@@ -7,18 +7,24 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./fssio": {
+      "types": "./dist/fssio.d.ts",
+      "default": "./dist/fssio.js"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "biome check src",
-    "test": "vitest run"
+    "test": "vitest run",
+    "example": "node examples/agent.mjs"
   },
   "dependencies": {
     "@mycomputer/shared": "workspace:*"
   },
   "devDependencies": {
+    "@mycomputer/app": "workspace:*",
     "@types/node": "^22.10.5",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
