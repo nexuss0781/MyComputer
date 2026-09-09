@@ -3,7 +3,12 @@ import { execRoutes } from './routes/exec.js';
 import { fsRoutes } from './routes/fs.js';
 import { sysRoutes } from './routes/sys.js';
 import { toolRoutes } from './routes/tools.js';
-import { getRuntime, persistenceSelftestFactory, reconcileAllPending } from './runtime.js';
+import {
+  coldSelftestFactory,
+  getRuntime,
+  persistenceSelftestFactory,
+  reconcileAllPending,
+} from './runtime.js';
 
 export function createApp(): Hono {
   const app = new Hono();
@@ -19,8 +24,19 @@ export function createApp(): Hono {
   );
 
   app.post('/api/sys/fsync', async (c) => {
+    let body: { sessionId?: string } = {};
+    try {
+      const parsed = await c.req.json().catch(() => ({}));
+      body = parsed ?? {};
+    } catch {
+      body = {};
+    }
+
     const sync = runtime.sync;
     if (!sync) return c.json({ ok: false, error: 'sync unavailable' }, 400);
+
+    const sessionId = body.sessionId || undefined;
+
     let reconciled = 0;
     try {
       reconciled = await reconcileAllPending();
@@ -28,7 +44,27 @@ export function createApp(): Hono {
       return c.json({ ok: false, error: 'reconcile failed', detail: String(error) }, 500);
     }
     const stats = await sync.flush();
-    return c.json({ ok: true, reconciled, flushed: stats.flushed, failed: stats.failed });
+
+    const sink = runtime.sink;
+    let cold: Record<string, unknown> | null = null;
+    if (sink) {
+      const coldStats = await sink.drain(sessionId);
+      cold = {
+        disabled: coldStats.disabled,
+        paths: coldStats.paths,
+        chunks: coldStats.chunks,
+        manifests: coldStats.manifests,
+        durationMs: coldStats.durationMs,
+      };
+    }
+
+    return c.json({
+      ok: true,
+      reconciled,
+      flushed: stats.flushed,
+      failed: stats.failed,
+      sink: cold,
+    });
   });
 
   fsRoutes(() => runtime.engine, app);
@@ -40,6 +76,7 @@ export function createApp(): Hono {
       executor: () => runtime.executor,
       sync: runtime.sync,
       persistenceFactory: persistenceSelftestFactory,
+      coldFactory: coldSelftestFactory,
       environment: runtime.environment,
     },
     app,

@@ -1,11 +1,12 @@
 import { sessionCreateSchema } from '@mycomputer/shared';
 import type { Hono } from 'hono';
+import { runColdSelftest } from '../../core/cold-selftest.js';
 import type { Executor } from '../../core/executor.js';
 import type { FsEngine } from '../../core/fs-engine.js';
 import { runPersistenceSelftest } from '../../core/persistence-selftest.js';
 import { type SelftestEnvironment, runSelftest } from '../../core/selftest.js';
 import type { SyncWriter } from '../../core/sync.js';
-import type { PersistenceSelftestFactory } from '../runtime.js';
+import type { ColdSelftestFactory, PersistenceSelftestFactory } from '../runtime.js';
 import type { SessionStore } from '../session.js';
 import { errorResponse, errorStatus } from './fs.js';
 
@@ -15,6 +16,7 @@ export interface SysDeps {
   executor: () => Executor | null;
   sync: SyncWriter | null;
   persistenceFactory: () => PersistenceSelftestFactory | null;
+  coldFactory: () => ColdSelftestFactory | null;
   environment: SelftestEnvironment;
 }
 
@@ -119,6 +121,23 @@ export function sysRoutes(deps: SysDeps, app: Hono): void {
         failed: payload.failed + p4.failed,
         failures: [...payload.failures, ...p4.failures],
         ok: payload.ok && p4.ok,
+      });
+    }
+    const coldFactory = deps.coldFactory();
+    if (coldFactory && payload.ok) {
+      const p5 = await runColdSelftest(coldFactory);
+      Object.assign(payload, {
+        cold: {
+          total: p5.total,
+          passed: p5.passed,
+          failed: p5.failed,
+          coldVerified: p5.coldVerified,
+        },
+        total: payload.total + p5.total,
+        passed: payload.passed + p5.passed,
+        failed: payload.failed + p5.failed,
+        failures: [...payload.failures, ...p5.failures],
+        ok: payload.ok && p5.ok,
       });
     }
     return c.json({ ok: payload.ok, data: payload }, payload.ok ? 200 : 500);

@@ -1,6 +1,9 @@
+import { BridgeClient } from '@mycomputer/shared';
 import { loadEnv } from '@mycomputer/shared';
 import { type SupabaseClient, createClient } from '@supabase/supabase-js';
+import type { FsBackend } from '../core/backend.js';
 import { BatchBackend } from '../core/batch-backend.js';
+import { ColdBackend } from '../core/cold-backend.js';
 import {
   BufferedExecStore,
   Executor,
@@ -10,10 +13,12 @@ import {
 import { FsEngine } from '../core/fs-engine.js';
 import { SupabaseJournalStore } from '../core/journal-supabase.js';
 import { MemoryBackend } from '../core/memory-backend.js';
+import { MockBridge } from '../core/mock-bridge.js';
 import { MemoryJournalStore, Oplog } from '../core/oplog.js';
 import type { SelftestEnvironment } from '../core/selftest.js';
 import { SupabaseBackend } from '../core/supabase-backend.js';
 import { SupabaseSyncStateStore, SupabaseSyncTarget } from '../core/sync-supabase.js';
+import { TelegramSink } from '../core/sync-telegram.js';
 import { SyncWriter, reconcileFromJournal } from '../core/sync.js';
 import { MemorySessionStore, type SessionStore, SupabaseSessionStore } from './session.js';
 
@@ -23,6 +28,7 @@ export interface Runtime {
   executor: Executor | null;
   sync: SyncWriter | null;
   environment: SelftestEnvironment;
+  sink: TelegramSink | null;
 }
 
 export interface PersistenceSelftestFactory {
@@ -33,6 +39,16 @@ export interface PersistenceSelftestFactory {
   journal: Oplog;
   sessions: SessionStore;
   buildCold(): { engine: FsEngine; writer: SyncWriter; executor: Executor };
+}
+
+export interface ColdSelftestFactory {
+  sessions: SessionStore;
+  engine: FsEngine;
+  sink: TelegramSink;
+  target: SupabaseSyncTarget;
+  writePath(sessionId: string, path: string, bytes: Uint8Array): Promise<void>;
+  coldRead(sessionId: string, path: string): Promise<string>;
+  prunePath(sessionId: string, path: string): Promise<void>;
 }
 
 function serviceKey(): string | undefined {
@@ -52,6 +68,9 @@ interface SupabaseRuntime {
   engine: FsEngine;
   executor: Executor;
   sessions: SupabaseSessionStore;
+  sink: TelegramSink;
+  target: SupabaseSyncTarget;
+  durableBackend: FsBackend;
 }
 
 let runtimeSingleton: Runtime | null = null;
@@ -71,6 +90,7 @@ export function getRuntime(): Runtime {
       executor: new Executor(new MemoryExecStore()),
       sync: null,
       environment: 'memory',
+      sink: null,
     };
     return runtimeSingleton;
   }
@@ -78,12 +98,25 @@ export function getRuntime(): Runtime {
   const db = buildSupabaseClient(url, key);
   const syncState = new SupabaseSyncStateStore(db);
   const journal = new Oplog(new SupabaseJournalStore(db));
+  const target = new SupabaseSyncTarget(db, syncState);
   const writer = new SyncWriter({
-    target: new SupabaseSyncTarget(db, syncState),
+    target,
     state: syncState,
   });
 
-  const engine = new FsEngine(new BatchBackend(new SupabaseBackend(db), writer), journal);
+  const durableBackend = new SupabaseBackend(db);
+
+  const bridge = new BridgeClient({
+    baseUrl: env.BRIDGE_URL ?? '',
+    token: env.BRIDGE_TOKEN ?? '',
+    channelId: env.BRIDGE_CHANNEL_ID ?? '',
+  });
+  const sink = new TelegramSink(bridge, target);
+
+  const engine = new FsEngine(
+    new BatchBackend(new ColdBackend(durableBackend, sink), writer),
+    journal,
+  );
   const executor = new Executor(new BufferedExecStore(new SupabaseExecStore(db), writer));
 
   supabaseRuntime = {
@@ -94,6 +127,9 @@ export function getRuntime(): Runtime {
     engine,
     executor,
     sessions: new SupabaseSessionStore(db),
+    sink,
+    target,
+    durableBackend,
   };
   runtimeSingleton = {
     engine,
@@ -101,6 +137,7 @@ export function getRuntime(): Runtime {
     executor,
     sync: writer,
     environment: 'supabase',
+    sink,
   };
   return runtimeSingleton;
 }
@@ -133,14 +170,66 @@ export function persistenceSelftestFactory(): PersistenceSelftestFactory | null 
     buildCold() {
       const coldState = new SupabaseSyncStateStore(db);
       const coldWriter = new SyncWriter({ target: new SupabaseSyncTarget(db, coldState) });
+      const coldBridge = new BridgeClient({
+        baseUrl: loadEnv().BRIDGE_URL ?? '',
+        token: loadEnv().BRIDGE_TOKEN ?? '',
+        channelId: loadEnv().BRIDGE_CHANNEL_ID ?? '',
+      });
+      const coldSink = new TelegramSink(coldBridge, new SupabaseSyncTarget(db, coldState));
       return {
         engine: new FsEngine(
-          new BatchBackend(new SupabaseBackend(db), coldWriter),
+          new BatchBackend(new ColdBackend(new SupabaseBackend(db), coldSink), coldWriter),
           new Oplog(new SupabaseJournalStore(db)),
         ),
         writer: coldWriter,
         executor: new Executor(new BufferedExecStore(new SupabaseExecStore(db), coldWriter)),
       };
+    },
+  };
+}
+
+export function coldSelftestFactory(): ColdSelftestFactory | null {
+  getRuntime();
+  const sup = supabaseRuntime;
+  if (!sup) return null;
+  const { db, sessions } = sup;
+  const env = loadEnv();
+
+  const coldState = new SupabaseSyncStateStore(db);
+  const coldTarget = new SupabaseSyncTarget(db, coldState);
+  const coldWriter = new SyncWriter({ target: coldTarget, state: coldState });
+  const bridge =
+    env.BRIDGE_URL && env.BRIDGE_TOKEN
+      ? new BridgeClient({
+          baseUrl: env.BRIDGE_URL,
+          token: env.BRIDGE_TOKEN,
+          channelId: env.BRIDGE_CHANNEL_ID ?? '',
+        })
+      : new MockBridge();
+  const coldSink = new TelegramSink(bridge, coldTarget);
+  const coldEngine = new FsEngine(
+    new BatchBackend(new ColdBackend(new SupabaseBackend(db), coldSink), coldWriter),
+    new Oplog(new SupabaseJournalStore(db)),
+  );
+
+  return {
+    sessions,
+    engine: coldEngine,
+    sink: coldSink,
+    target: coldTarget,
+    writePath: (sessionId, path, bytes) =>
+      coldEngine.write(sessionId, path, bytes).then(() => Promise.resolve()),
+    coldRead: async (sessionId, path) => {
+      const result = await coldEngine.read(sessionId, path);
+      return result.content;
+    },
+    prunePath: async (sessionId, path) => {
+      const { error } = await db
+        .from('blocks')
+        .update({ data: null })
+        .eq('session_id', sessionId)
+        .eq('path', path);
+      if (error) throw new Error(`prune failed: ${error.message}`);
     },
   };
 }

@@ -9,6 +9,7 @@ export const envSchema = z.object({
   DATABASE_URL: z.string().min(1).optional(),
   BRIDGE_URL: z.string().url().optional(),
   BRIDGE_TOKEN: z.string().min(1).optional(),
+  BRIDGE_CHANNEL_ID: z.string().min(1).optional(),
   DEFAULT_SESSION_NAME: z.string().min(1).default('my-computer'),
   MAX_CHUNK_BYTES: z.coerce
     .number()

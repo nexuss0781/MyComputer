@@ -40,3 +40,12 @@ export type {
   SessionRow,
   Execution,
 } from './schemas.js';
+
+export { bridgeUploadSchema } from './bridge.js';
+export type {
+  BridgeUploadInput,
+  BridgeUploadResult,
+  BridgeDownloadResult,
+  BridgeLike,
+} from './bridge.js';
+export { BridgeClient } from './bridge-client.js';

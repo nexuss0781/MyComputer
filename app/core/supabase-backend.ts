@@ -2,6 +2,7 @@ import type { Inode } from '@mycomputer/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { BlockRow, FsBackend } from './backend.js';
 import type { Chunk } from './chunker.js';
+import { uuidFromSeed } from './ids.js';
 
 interface InodeRow {
   path: string;
@@ -120,7 +121,7 @@ export class SupabaseBackend implements FsBackend {
     await this.removeBlocksByPaths(sessionId, [path]);
     if (chunks.length === 0) return;
     const rows = chunks.map((c) => ({
-      content_id: contentId,
+      content_id: contentId || uuidFromSeed(`${sessionId}::${path}::${c.checksum}`),
       path,
       session_id: sessionId,
       seq: c.seq,
