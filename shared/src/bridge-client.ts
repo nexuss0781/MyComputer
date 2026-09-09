@@ -83,7 +83,7 @@ export class BridgeClient implements BridgeLike {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ file_id: fileId }),
     });
-    const fileUrl = `${this.baseUrl}/file/bot/${this.token}/${getFileResp.file_path}`;
+    const fileUrl = `${this.baseUrl}/file/bot${this.token}/${getFileResp.file_path}`;
     const resp = await this.fetchFn(fileUrl);
     if (!resp.ok) {
       throw new Error(`file download failed: ${resp.status} ${resp.statusText}`);
@@ -95,7 +95,7 @@ export class BridgeClient implements BridgeLike {
   }
 
   private async request<T>(path: string, init: RequestInit): Promise<T> {
-    const url = `${this.baseUrl}/bot/${this.token}${path}`;
+    const url = `${this.baseUrl}/bot${this.token}${path}`;
     let lastError: Error | null = null;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       if (attempt > 0) {

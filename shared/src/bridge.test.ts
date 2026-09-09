@@ -21,7 +21,7 @@ const CLIENT = new BridgeClient({
 describe('BridgeClient', () => {
   it('upload returns msgId and fileId from sendDocument', async () => {
     const fetchFn = mockFetch((url, init) => {
-      expect(url).toContain('/bot/test-token/sendDocument');
+      expect(url).toContain('/bottest-token/sendDocument');
       expect(init.method).toBe('POST');
       return {
         ok: true,
@@ -115,7 +115,7 @@ describe('BridgeClient', () => {
           { status: 200, headers: { 'content-type': 'application/json' } },
         );
       }
-      expect(urlStr).toContain('/file/bot/test-token/docs/0.bin');
+      expect(urlStr).toContain('/file/bottest-token/docs/0.bin');
       return new Response(new Uint8Array([10, 20, 30]), { status: 200 });
     });
     const client = new BridgeClient({
