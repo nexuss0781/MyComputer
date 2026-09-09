@@ -196,8 +196,10 @@ write → chunked read → append → exec → log replay → list → checksum 
 remove), including a multi-block 10 MiB byte-identical round-trip. Verified
 live against prod: `examples/agent.mjs` completed a real session on
 `nexuss-computer.vercel.app` with a 2 MiB+11 B multi-chunk blob restored
-byte-identical and all three checksums matching. Note: on Vercel keep request
-chunks ≤ ~3 MiB (serverless request-body cap ~4.5 MiB; base64 inflates 4/3).
+byte-identical and all three checksums matching. Note: probed on prod, Vercel's
+serverless HTTP body cap blocks writes at **4.375 MiB wire** (measured
+4.250 OK / 4.375 413 `FUNCTION_PAYLOAD_TOO_LARGE`); base64 inflates payloads
+4/3, so the SDK's default chunk is **3 MiB raw → 4 MiB wire** (`chunkSize`).
 
 **→ Milestone M3 (with Phase 7).**
 

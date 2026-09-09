@@ -19,7 +19,12 @@ import { type SessionFacade, mountSession } from './session.js';
 export interface ComputerClientConfig {
   baseUrl: string;
   fetchFn?: typeof fetch;
-  /** Maximum payload size used by the chunked write helper (bytes, default 8 MiB). */
+  /**
+   * Maximum payload size for chunked write helpers (bytes, default 3 MiB).
+   * Vercel's serverless HTTP body cap is ~4.5 MiB and base64 inflates payloads
+   * 4/3, so chunking is required on prod; 3 MiB raw → 4 MiB wire is proven safe
+   * (probes blocked at 4.375 MiB wire).
+   */
   chunkSize?: number;
 }
 
@@ -30,7 +35,7 @@ export class ComputerClient {
 
   constructor(config: ComputerClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\/+$/, '');
-    this.chunkSize = config.chunkSize ?? 8 * 1024 * 1024;
+    this.chunkSize = config.chunkSize ?? 3 * 1024 * 1024;
     this.http = new HttpTransport(this.baseUrl, { fetchFn: config.fetchFn });
   }
 

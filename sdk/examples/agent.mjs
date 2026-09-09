@@ -9,8 +9,9 @@ import { ComputerClient } from '../dist/index.js';
 import { readAll, writeAll } from '../dist/fssio.js';
 
 const baseUrl = (process.env.MY_COMPUTER_URL ?? 'http://localhost:3000').replace(/\/+$/, '');
-// 2 MiB fits comfortably under Vercel's ~4.5 MiB request-body cap (base64 inflates ~4/3).
-const CHUNK = 2 * 1024 * 1024;
+// 3 MiB raw → 4 MiB wire after base64 (4/3 inflation), proven safe against the
+// Vercel serverless body cap (blocks observed at 4.375 MiB wire).
+const CHUNK = 3 * 1024 * 1024;
 
 async function main() {
   const client = new ComputerClient({ baseUrl, chunkSize: CHUNK });
