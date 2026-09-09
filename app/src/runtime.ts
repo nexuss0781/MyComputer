@@ -235,8 +235,10 @@ export function coldSelftestFactory(): ColdSelftestFactory | null {
     engine: coldEngine,
     sink: coldSink,
     target: coldTarget,
-    writePath: (sessionId, path, bytes) =>
-      coldEngine.write(sessionId, path, bytes).then(() => Promise.resolve()),
+    writePath: async (sessionId, path, bytes) => {
+      await coldEngine.write(sessionId, path, bytes);
+      await coldWriter.flush();
+    },
     coldRead: async (sessionId, path) => {
       const result = await coldEngine.read(sessionId, path);
       return result.content;
