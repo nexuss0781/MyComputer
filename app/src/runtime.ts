@@ -13,6 +13,7 @@ import {
 import { FsEngine } from '../core/fs-engine.js';
 import { SupabaseJournalStore } from '../core/journal-supabase.js';
 import { MemoryBackend } from '../core/memory-backend.js';
+import { ensureMigrated } from '../core/migrate.js';
 import { MockBridge } from '../core/mock-bridge.js';
 import { MemoryJournalStore, Oplog } from '../core/oplog.js';
 import type { SelftestEnvironment } from '../core/selftest.js';
@@ -75,6 +76,23 @@ interface SupabaseRuntime {
 
 let runtimeSingleton: Runtime | null = null;
 let supabaseRuntime: SupabaseRuntime | null = null;
+
+const schemaReady: Promise<void> = (() => {
+  if (
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_URL_NON_POOLING ||
+    process.env.POSTGRES_PRISMA_URL
+  ) {
+    return ensureMigrated().catch((error) => {
+      console.error('schema migration failed:', error instanceof Error ? error.message : error);
+    });
+  }
+  return Promise.resolve();
+})();
+
+export function awaitSchemaReady(): Promise<void> {
+  return schemaReady;
+}
 
 export function getRuntime(): Runtime {
   if (runtimeSingleton) return runtimeSingleton;

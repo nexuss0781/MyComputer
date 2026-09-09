@@ -6,7 +6,11 @@ import type { FsEngine } from '../../core/fs-engine.js';
 import { runPersistenceSelftest } from '../../core/persistence-selftest.js';
 import { type SelftestEnvironment, runSelftest } from '../../core/selftest.js';
 import type { SyncWriter } from '../../core/sync.js';
-import type { ColdSelftestFactory, PersistenceSelftestFactory } from '../runtime.js';
+import {
+  type ColdSelftestFactory,
+  type PersistenceSelftestFactory,
+  awaitSchemaReady,
+} from '../runtime.js';
 import type { SessionStore } from '../session.js';
 import { errorResponse, errorStatus } from './fs.js';
 
@@ -95,6 +99,7 @@ export function sysRoutes(deps: SysDeps, app: Hono): void {
 
   app.post('/api/sys/selftest', async (c) => {
     const start = Date.now();
+    await awaitSchemaReady();
     const live = deps.engine();
     if (!live)
       return c.json(
