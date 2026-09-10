@@ -57,14 +57,18 @@ AS $$
 $$;
 `;
 
-async function runMigration(dbUrl: string): Promise<{ ok: boolean; error?: string }> {
+async function runMigration(
+  dbUrl: string,
+  sqlOverride?: string,
+): Promise<{ ok: boolean; error?: string }> {
   try {
     const postgres = (await import('postgres')).default;
     const url = dbUrl.includes('sslmode=')
       ? dbUrl
       : `${dbUrl}${dbUrl.includes('?') ? '&' : '?'}sslmode=no-verify`;
-    const sql = postgres(url, { connect_timeout: 15, max: 1 });
-    await sql.unsafe(MIGRATION_SQL);
+    const sql = postgres(url, { connect_timeout: 15, max: 2 });
+    await sql.unsafe(sqlOverride ?? MIGRATION_SQL);
+    await sql`NOTIFY pgrst, 'reload schema'`;
     await sql.end();
     return { ok: true };
   } catch (err) {
@@ -141,7 +145,7 @@ export function debugRoutes(app: Hono): void {
     try {
       const result = await runMigration(dbUrl);
       if (result.ok) {
-        return c.json({ ok: true, message: 'Migration 0004 applied successfully' });
+        return c.json({ ok: true, message: 'Migration 0004 applied + schema reloaded' });
       }
       return c.json({ ok: false, error: result.error }, 500);
     } catch (err) {
