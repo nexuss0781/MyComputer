@@ -73,3 +73,19 @@ jobs:
           op=$(psql "$DATABASE_URL" -q -tA -c "INSERT INTO public.operations (session_id, op_type, status) SELECT id, 'ci-smoke', 'ok' FROM public.sessions WHERE name = 'ci-smoke' LIMIT 1 RETURNING op_id;")
           out=$(psql "$DATABASE_URL" -tA -c "UPDATE public.operations SET status = 'done' WHERE op_id = '$op';" 2>&1 || true)
           printf '%s' "$out" | grep -q 'append-only' && echo "append-only enforced"
+      - name: verify claim_job function
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: |
+          psql "$DATABASE_URL" -q -tA -c "INSERT INTO public.sessions (name) VALUES ('ci-worker-test');"
+          psql "$DATABASE_URL" -q -tA -c "INSERT INTO public.jobs (session_id, kind, payload) SELECT id, 'exec', '{\"command\":\"echo ok\"}'::jsonb FROM public.sessions WHERE name = 'ci-worker-test' LIMIT 1 RETURNING job_id;" > /tmp/job_id.txt
+          psql "$DATABASE_URL" -q -tA -c "SELECT * FROM claim_job('ci-runner');"
+          psql "$DATABASE_URL" -q -tA -c "SELECT count(*) FROM jobs WHERE state = 'claimed' AND claimed_by = 'ci-runner';" | grep -q '1' && echo "claim_job works"
+      - name: verify requeue_stale_jobs function
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: |
+          psql "$DATABASE_URL" -q -tA -c "UPDATE jobs SET state = 'claimed', claimed_by = 'stale-worker', updated_at = now() - interval '1 hour';"
+          requeued=$(psql "$DATABASE_URL" -tA -c "SELECT requeue_stale_jobs(1000, 3);")
+          test "$requeued" -ge 1 && echo "requeue_stale_jobs works (requeued $requeued)"
+          psql "$DATABASE_URL" -q -tA -c "SELECT count(*) FROM jobs WHERE state = 'queued';" | grep -q '1' && echo "requeued job back to queued"

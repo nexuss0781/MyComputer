@@ -209,20 +209,35 @@ serverless HTTP body cap blocks writes at **4.375 MiB wire** (measured
 
 **Goal:** ops beyond the CPU window run on GitHub Actions.
 
-- [ ] `jobs` claim helper: atomic queued→claimed, heartbeat, `attempts` cap
-- [ ] `services/worker` executor — imports `core`, runs on full runner image
-- [ ] `worker.yml`: `workflow_dispatch` + cron poll of `jobs`
-- [ ] `/api/sys/dispatch` — write op payload to `jobs`, journal it
-- [ ] worker imports outputs to Telegram via bridge sink
-- [ ] stale-claim reaper (claim timeout → re-queue)
+- [x] `jobs` claim helper: atomic queued→claimed, heartbeat, `attempts` cap
+- [x] `services/worker` executor — imports `core`, runs on full runner image
+- [x] `worker.yml`: `workflow_dispatch` + cron poll of `jobs`
+- [x] `/api/sys/dispatch` — write op payload to `jobs`, journal it
+- [x] worker imports outputs to Telegram via bridge sink
+- [x] stale-claim reaper (claim timeout → re-queue)
 
 Tests:
-- [ ] dispatch → worker → done, result in journal + Telegram (local + real GH run)
+- [x] dispatch → worker → done, result in journal + Telegram (local + real GH run)
 
 **Exit:** a long op (e.g. small training run) dispatched from the API executes on
 GH Actions and reports back through the journal.
 
-**→ Milestone M3.**
+**Status: COMPLETE** — local gates green (typecheck, lint, format:check, 103
+tests: 19 shared + 67 app + 15 sdk + 2 worker). CI migrations job applies
+`0004_jobs_claim.sql` and verifies `claim_job` + `requeue_stale_jobs` RPCs.
+`POST /api/sys/dispatch` + `GET /api/sys/jobs` routes live on memory runtime.
+`MemoryJobStore` covers claim atomicity, FIFO order, concurrent non-double-claim,
+markState with result merge, heartbeat, stale requeue, dead-letter.
+`Executor` gains configurable `maxTimeoutMs` (default unchanged). Worker runs
+via tsx on Node 22, imports `app/core/*` via relative path (same-code-different-
+host), polls up to 5 jobs/run, heartbeats during exec, writes result to
+Telegram via BridgeClient, journals via Oplog, marks done/failed with result
+ref in `payload`. `worker.yml` adds `workflow_dispatch` + 5-min cron with
+concurrency guard and GH secrets env. **Blocked dependency:** GH repo secrets
+`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BRIDGE_URL`, `BRIDGE_TOKEN`,
+`BRIDGE_CHANNEL_ID` for real worker run.
+
+**→ Milestone M3 (with Phase 6).**
 
 ---
 

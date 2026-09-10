@@ -307,4 +307,74 @@ describe('app routes', () => {
     const found = list.data.executions.find((e) => e.command === 'echo persisted-via-tools');
     expect(found).toBeTruthy();
   });
+
+  it('dispatch enqueues a job and journals the dispatch op', async () => {
+    const app = createApp();
+
+    const sessionRes = await app.request('/api/sys/session', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'dispatch-test' }),
+    });
+    const session = (await sessionRes.json()) as { data: { id: string } };
+
+    const dispatchRes = await app.request('/api/sys/dispatch', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: session.data.id,
+        kind: 'exec',
+        payload: { command: 'echo dispatch-ok' },
+      }),
+    });
+    expect(dispatchRes.status).toBe(200);
+    const dispatch = (await dispatchRes.json()) as {
+      ok: boolean;
+      data: { jobId: string; state: string; kind: string };
+    };
+    expect(dispatch.ok).toBe(true);
+    expect(dispatch.data.state).toBe('queued');
+    expect(dispatch.data.kind).toBe('exec');
+
+    const jobsRes = await app.request(`/api/sys/jobs?sessionId=${session.data.id}`);
+    expect(jobsRes.status).toBe(200);
+    const jobs = (await jobsRes.json()) as {
+      ok: boolean;
+      data: Array<{ jobId: string; state: string; payload: { command: string } }>;
+    };
+    expect(jobs.ok).toBe(true);
+    expect(jobs.data).toHaveLength(1);
+    expect(jobs.data[0]?.payload.command).toBe('echo dispatch-ok');
+  });
+
+  it('dispatch validates kind enum', async () => {
+    const app = createApp();
+    const sessionRes = await app.request('/api/sys/session', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'dispatch-bad' }),
+    });
+    const session = (await sessionRes.json()) as { data: { id: string } };
+
+    const res = await app.request('/api/sys/dispatch', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: session.data.id,
+        kind: 'invalid_kind',
+        payload: {},
+      }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('dispatch returns 400 without sessionId', async () => {
+    const app = createApp();
+    const res = await app.request('/api/sys/dispatch', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ kind: 'exec', payload: {} }),
+    });
+    expect(res.status).toBe(400);
+  });
 });

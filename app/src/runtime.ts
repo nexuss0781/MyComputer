@@ -11,6 +11,7 @@ import {
   SupabaseExecStore,
 } from '../core/executor.js';
 import { FsEngine } from '../core/fs-engine.js';
+import { type JobStore, MemoryJobStore, SupabaseJobStore } from '../core/job-store.js';
 import { SupabaseJournalStore } from '../core/journal-supabase.js';
 import { MemoryBackend } from '../core/memory-backend.js';
 import { ensureMigrated } from '../core/migrate.js';
@@ -30,6 +31,8 @@ export interface Runtime {
   sync: SyncWriter | null;
   environment: SelftestEnvironment;
   sink: TelegramSink | null;
+  jobStore: JobStore | null;
+  journal: Oplog;
 }
 
 export interface PersistenceSelftestFactory {
@@ -72,6 +75,7 @@ interface SupabaseRuntime {
   sink: TelegramSink;
   target: SupabaseSyncTarget;
   durableBackend: FsBackend;
+  jobStore: SupabaseJobStore;
 }
 
 let runtimeSingleton: Runtime | null = null;
@@ -102,6 +106,7 @@ export function getRuntime(): Runtime {
 
   if (!url || !key) {
     const memoryJournal = new Oplog(new MemoryJournalStore());
+    const memoryJobStore = new MemoryJobStore();
     runtimeSingleton = {
       engine: new FsEngine(new MemoryBackend(), memoryJournal),
       sessions: new MemorySessionStore(),
@@ -109,6 +114,8 @@ export function getRuntime(): Runtime {
       sync: null,
       environment: 'memory',
       sink: null,
+      jobStore: memoryJobStore,
+      journal: memoryJournal,
     };
     return runtimeSingleton;
   }
@@ -137,6 +144,8 @@ export function getRuntime(): Runtime {
   );
   const executor = new Executor(new BufferedExecStore(new SupabaseExecStore(db), writer));
 
+  const jobStore = new SupabaseJobStore(db);
+
   supabaseRuntime = {
     db,
     syncState,
@@ -148,6 +157,7 @@ export function getRuntime(): Runtime {
     sink,
     target,
     durableBackend,
+    jobStore,
   };
   runtimeSingleton = {
     engine,
@@ -156,6 +166,8 @@ export function getRuntime(): Runtime {
     sync: writer,
     environment: 'supabase',
     sink,
+    jobStore,
+    journal,
   };
   return runtimeSingleton;
 }

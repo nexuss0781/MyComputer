@@ -1,0 +1,32 @@
+name: worker
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'  # poll every 5 min
+
+concurrency:
+  group: worker-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: execute worker
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BRIDGE_URL: ${{ secrets.BRIDGE_URL }}
+          BRIDGE_TOKEN: ${{ secrets.BRIDGE_TOKEN }}
+          BRIDGE_CHANNEL_ID: ${{ secrets.BRIDGE_CHANNEL_ID }}
+          DEFAULT_SESSION_NAME: my-computer
+        run: pnpm --filter @mycomputer/worker run start

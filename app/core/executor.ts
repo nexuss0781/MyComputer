@@ -182,7 +182,7 @@ export class BufferedExecStore implements ExecStore {
 export class Executor {
   constructor(
     private readonly store: ExecStore,
-    private readonly defaults: { timeoutMs?: number } = {},
+    private readonly defaults: { timeoutMs?: number; maxTimeoutMs?: number } = {},
   ) {}
 
   scratchDir(sessionId: string): string {
@@ -212,7 +212,7 @@ export class Executor {
 
     const timeoutMs = Math.min(
       request.timeoutMs ?? this.defaults.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-      MAX_TIMEOUT_MS,
+      this.defaults.maxTimeoutMs ?? MAX_TIMEOUT_MS,
     );
 
     const started = Date.now();

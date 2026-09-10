@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { main } from './index.js';
+import { main, run } from './worker.js';
 
 describe('worker entry', () => {
-  it('exposes a main entry point', () => {
+  it('exports main function', () => {
     expect(typeof main).toBe('function');
+  });
+
+  it('exports run function', () => {
+    expect(typeof run).toBe('function');
   });
 });

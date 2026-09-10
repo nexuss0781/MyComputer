@@ -5,13 +5,15 @@ operations for AI training on GitHub Actions.
 
 ## Where we are
 
-**Phases 1–5 complete** — docs authored (`docs/Project.md`, `docs/DESIGN.md`),
+**Phases 1–6 complete** — docs authored (`docs/Project.md`, `docs/DESIGN.md`),
 CI green on github.com/nexuss0781/MyComputer (public), Supabase schema applied
 + verified (self-healing migrations run from Vercel), prod selftest `26/26`
 live (18 base + 4 persistence + 4 cold, coldVerified true, batch flush ~92 ms).
-Phase 2/3/4/5 exit reports in `docs/TODO.md`.
+Phase 2/3/4/5 exit reports in `docs/TODO.md`. Phase 6 (SDK) exit report
+(`eaef9cb`, `7d637b2`, `84913e8`) in `docs/PHASES.md`.
 
-**Current: Phase 6 — SDK.**
+**Current: Phase 7 — GH Actions Worker.** Phase 7 code complete (local gates
+green, 103 tests). Blocked on GH repo secrets for real worker run.
 
 ## Roadmap
 

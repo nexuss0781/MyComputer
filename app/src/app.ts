@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { execRoutes } from './routes/exec.js';
 import { fsRoutes } from './routes/fs.js';
+import { jobsRoutes } from './routes/jobs.js';
 import { sysRoutes } from './routes/sys.js';
 import { toolRoutes } from './routes/tools.js';
 import {
@@ -81,6 +82,17 @@ export function createApp(): Hono {
     },
     app,
   );
+
+  if (runtime.jobStore) {
+    jobsRoutes(
+      {
+        jobStore: runtime.jobStore,
+        executor: () => runtime.executor,
+        journal: runtime.journal,
+      },
+      app,
+    );
+  }
 
   if (runtime.executor) {
     execRoutes({ engine: () => runtime.engine, executor: () => runtime.executor }, app);

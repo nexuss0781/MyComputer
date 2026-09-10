@@ -137,13 +137,34 @@ Connected to the real bridge at `https://telegram-bot-api-1.onrender.com`
 
 ## Phase 7 — GH Actions Worker
 
-- [ ] `jobs` claim helper (atomic claim, heartbeat, attempts)
-- [ ] `services/worker` executor (imports core)
-- [ ] `worker.yml`: workflow_dispatch + cron poll
-- [ ] `/api/sys/dispatch`
-- [ ] worker output → bridge sink
-- [ ] stale-claim reaper
-- [ ] dispatch → worker → done test
+- [x] `jobs` claim helper (atomic claim, heartbeat, attempts)
+- [x] `services/worker` executor (imports core)
+- [x] `worker.yml`: workflow_dispatch + cron poll
+- [x] `/api/sys/dispatch`
+- [x] worker output → bridge sink
+- [x] stale-claim reaper
+- [x] dispatch → worker → done test
+
+**P7 exit report (2026-09-10):** Local gates all green (typecheck, lint,
+format:check, 103 tests: 19 shared + 67 app + 15 sdk + 2 worker). CI migrations
+job applies `0004_jobs_claim.sql` (atomic `claim_job` + `requeue_stale_jobs`
+RPCs) and verifies functions via psql. `POST /api/sys/dispatch` inserts a
+`queued` job and journals a `dispatch` op; `GET /api/sys/jobs` returns session-
+scoped jobs. `MemoryJobStore` unit tests cover: insert, FIFO claim, concurrent
+claim non-double-claim, markState with result merge, worker-only markState,
+heartbeat bump, stale requeue, dead-letter after max attempts, session-scoped
+list. `Executor` gains configurable `maxTimeoutMs` (default 120s unchanged;
+worker uses 6h). Worker (`services/worker/src/worker.ts`) runs via tsx on
+Node 22, imports `app/core/*` via relative path (same-code-different-host per
+DESIGN §8), polls up to 5 jobs per run, reaps stale claims, heartbeats during
+exec, writes result to Telegram via BridgeClient, journals exec result via
+Oplog, marks done/failed with result ref in `payload`. `.github/workflows/worker.yml`
+adds `workflow_dispatch` + 5-min cron with concurrency guard and GH secrets env.
+CI `ci.yml` migrations job verifies both RPC functions (claim returns 1 row,
+requeueStale requeues 1 job). Local worker tests pass (2 tests). **Blocked
+dependency:** GH repo secrets `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+`BRIDGE_URL`, `BRIDGE_TOKEN`, `BRIDGE_CHANNEL_ID` required for real GH worker
+run — recorded below.
 
 ## Phase 8 — Bench & Harden
 
@@ -177,3 +198,6 @@ Connected to the real bridge at `https://telegram-bot-api-1.onrender.com`
       `https://telegram-bot-api-1.onrender.com`, bot `8910064908`,
       channel `-1004327844302`, Vercel envs `BRIDGE_URL`/`BRIDGE_TOKEN`/
       `BRIDGE_CHANNEL_ID` set
+- [ ] **GH Actions worker secrets** — repo secrets `SUPABASE_URL`,
+      `SUPABASE_SERVICE_ROLE_KEY`, `BRIDGE_URL`, `BRIDGE_TOKEN`,
+      `BRIDGE_CHANNEL_ID` required for real worker run (Phase 7 live proof)

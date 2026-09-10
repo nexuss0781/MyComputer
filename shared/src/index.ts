@@ -49,3 +49,6 @@ export type {
   BridgeLike,
 } from './bridge.js';
 export { BridgeClient } from './bridge-client.js';
+
+export { dispatchSchema } from './jobs.js';
+export type { DispatchInput, JobRow, JobKind, JobState } from './jobs.js';
