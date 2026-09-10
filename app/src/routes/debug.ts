@@ -58,18 +58,17 @@ $$;
 `;
 
 async function runMigration(dbUrl: string): Promise<{ ok: boolean; error?: string }> {
-  const postgres = (await import('postgres')).default;
-  const url = dbUrl.includes('sslmode=')
-    ? dbUrl
-    : `${dbUrl}${dbUrl.includes('?') ? '&' : '?'}sslmode=no-verify`;
-  const sql = postgres(url, { connect_timeout: 15, max: 1 });
   try {
+    const postgres = (await import('postgres')).default;
+    const url = dbUrl.includes('sslmode=')
+      ? dbUrl
+      : `${dbUrl}${dbUrl.includes('?') ? '&' : '?'}sslmode=no-verify`;
+    const sql = postgres(url, { connect_timeout: 15, max: 1 });
     await sql.unsafe(MIGRATION_SQL);
+    await sql.end();
     return { ok: true };
   } catch (err) {
     return { ok: false, error: String(err) };
-  } finally {
-    await sql.end();
   }
 }
 
@@ -139,10 +138,14 @@ export function debugRoutes(app: Hono): void {
       );
     }
 
-    const result = await runMigration(dbUrl);
-    if (result.ok) {
-      return c.json({ ok: true, message: 'Migration 0004 applied successfully' });
+    try {
+      const result = await runMigration(dbUrl);
+      if (result.ok) {
+        return c.json({ ok: true, message: 'Migration 0004 applied successfully' });
+      }
+      return c.json({ ok: false, error: result.error }, 500);
+    } catch (err) {
+      return c.json({ ok: false, error: `Migration handler crashed: ${String(err)}` }, 500);
     }
-    return c.json({ ok: false, error: result.error }, 500);
   });
 }
