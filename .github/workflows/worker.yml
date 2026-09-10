@@ -21,6 +21,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @mycomputer/shared build
       - name: execute worker
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
