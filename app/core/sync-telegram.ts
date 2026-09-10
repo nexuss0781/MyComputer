@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { BridgeLike } from '@mycomputer/shared';
+import { type BridgeLike, ChecksumError } from '@mycomputer/shared';
 import type { BlockRef } from './sync-supabase.js';
 
 export interface TgSinkTarget {
@@ -93,7 +93,18 @@ export class TelegramSink {
       const expected = ref.checksum;
       const actual = createHash('sha256').update(attempt.bytes).digest('hex');
       if (actual !== expected) {
-        throw new Error(`checksum mismatch for ${path} block ${ref.seq}`);
+        const retry = await this.retryIf(() => this.bridge.download(ref.fileId as string));
+        const retryActual = createHash('sha256').update(retry.bytes).digest('hex');
+        if (retryActual !== expected) {
+          throw new ChecksumError(`checksum mismatch for ${path} block ${ref.seq}`, {
+            sessionId,
+            path,
+            seq: ref.seq,
+          });
+        }
+        uploaded += 1;
+        parts.push({ seq: ref.seq, bytes: retry.bytes });
+        continue;
       }
       uploaded += 1;
       parts.push({ seq: ref.seq, bytes: attempt.bytes });

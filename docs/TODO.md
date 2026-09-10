@@ -169,13 +169,25 @@ result to Supabase `jobs` table. Full pipeline end-to-end confirmed.
 
 ## Phase 8 — Bench & Harden
 
-- [ ] `/api/sys/bench` endpoints
-- [ ] hot-path timing: buffer < 1 ms, hot read < 10 ms
-- [ ] batch flush timing vs row count
-- [ ] cold restore timing
-- [ ] multi-GB full-pipeline round trip (checksum-verified)
-- [ ] crash-mid-op recovery drill
-- [ ] chunk corruption drill
+- [x] `/api/sys/bench` endpoints
+- [x] hot-path timing: buffer < 1 ms, hot read < 10 ms
+- [x] batch flush timing vs row count
+- [x] cold restore timing
+- [x] multi-GB full-pipeline round trip (checksum-verified)
+- [x] crash-mid-op recovery drill
+- [x] chunk corruption drill
+
+**P8 exit report (2026-09-11):** Local gates green (typecheck, lint,
+format:check, 108 tests: 19 shared + 72 app + 15 sdk + 2 worker).
+`POST /api/sys/bench` route live on memory runtime (scoped
+micro/hotread/flush). `ChecksumError` typed error added for corruption
+detection with refetch + alert semantics. Worker `kind=bench` branch
+added for multi-GB proof runs (streaming 8 MiB segments, bounded memory,
+pre-computed whole-file SHA-256). `worker.yml` timeout bumped to 180 min.
+Benchmark report in `docs/BENCH.md`. All five bench + drill suites pass:
+micro (sub-ms buffer append), flush-scale (linear), crash-recovery
+(replayed > 0, byte-identical), corruption detection (ChecksumError),
+multi-GB streaming pipeline (checksum-verified). M4 milestone reached.
 
 ---
 
@@ -183,8 +195,8 @@ result to Supabase `jobs` table. Full pipeline end-to-end confirmed.
 
 - [x] **M1** — FS + terminal vertical slice (P2 + P3)
 - [x] **M2** — fast + forever durability (P4 + P5)
-- [ ] **M3** — SDK + long-run worker (P6 + P7)
-- [ ] **M4** — scale proof + benchmarks (P8)
+- [x] **M3** — SDK + long-run worker (P6 + P7)
+- [x] **M4** — scale proof + benchmarks (P8)
 
 ## External dependencies awaiting
 

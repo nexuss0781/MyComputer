@@ -5,7 +5,7 @@ export {
 } from './env.js';
 export type { Env, OperationStatus, ApiErrorShape } from './env.js';
 
-export { ComputerError, NotFoundError, PathError, ConflictError } from './errors.js';
+export { ComputerError, NotFoundError, PathError, ConflictError, ChecksumError } from './errors.js';
 export type { ErrorCode } from './errors.js';
 
 export {

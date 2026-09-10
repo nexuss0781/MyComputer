@@ -6,7 +6,8 @@ export type ErrorCode =
   | 'unsupported'
   | 'parent_not_found'
   | 'session_not_found'
-  | 'internal';
+  | 'internal'
+  | 'checksum_mismatch';
 
 export class ComputerError extends Error {
   readonly code: ErrorCode;
@@ -35,5 +36,26 @@ export class PathError extends ComputerError {
 export class ConflictError extends ComputerError {
   constructor(message = 'conflict') {
     super('already_exists', message, 409);
+  }
+}
+
+export class ChecksumError extends ComputerError {
+  readonly sessionId: string;
+  readonly path: string;
+  readonly seq: number;
+
+  constructor(
+    message: string,
+    opts: { sessionId: string; path: string; seq: number } = {
+      sessionId: '',
+      path: '',
+      seq: 0,
+    },
+  ) {
+    super('checksum_mismatch', message, 502);
+    this.name = 'ChecksumError';
+    this.sessionId = opts.sessionId;
+    this.path = opts.path;
+    this.seq = opts.seq;
   }
 }

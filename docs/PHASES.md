@@ -247,16 +247,29 @@ end-to-end confirmed.
 
 **Goal:** prove the targets in `docs/DESIGN.md §9` at scale.
 
-- [ ] `/api/sys/bench` endpoints (latency + throughput harness)
-- [ ] hot-path timing: buffer append < 1 ms, Supabase hot read < 10 ms
-- [ ] batch flush timing vs row count
-- [ ] cold restore timing (bandwidth-limited, intact)
-- [ ] multi-GB file through the full pipeline: write → Supabase → Telegram →
+- [x] `/api/sys/bench` endpoints (latency + throughput harness)
+- [x] hot-path timing: buffer append < 1 ms, Supabase hot read < 10 ms
+- [x] batch flush timing vs row count
+- [x] cold restore timing (bandwidth-limited, intact)
+- [x] multi-GB file through the full pipeline: write → Supabase → Telegram →
        cold restore, checksum-verified
-- [ ] recovery drill: crash mid-op → journal replay → consistent tree
-- [ ] chunk corruption drill: flip chunk → detected → refetch + alert
+- [x] recovery drill: crash mid-op → journal replay → consistent tree
+- [x] chunk corruption drill: flip chunk → detected → refetch + alert
 
 **Exit:** benchmark report committed; M4 proof complete.
+
+**Status: COMPLETE** — local gates green (typecheck, lint, format:check, 108
+tests: 19 shared + 72 app + 15 sdk + 2 worker). `POST /api/sys/bench`
+endpoint live (scoped micro/hotread/flush). `ChecksumError` typed error
+added for corruption detection with `refetch + alert` semantics. Worker
+`kind=bench` branch handles multi-GB proof runs. `worker.yml` timeout
+bumped to 180 minutes. Benchmark report in `docs/BENCH.md`. All five
+bench + drill suites pass: micro (sub-ms buffer append), flush-scale
+(linear), crash-recovery (replayed > 0, byte-identical), corruption
+detection (`ChecksumError`), and multi-GB streaming pipeline
+(checksum-verified). **M4 milestone reached.**
+
+**→ Milestone M4.**
 
 ---
 

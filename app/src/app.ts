@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { benchRoutes } from './routes/bench.js';
 import { debugRoutes } from './routes/debug.js';
 import { execRoutes } from './routes/exec.js';
 import { fsRoutes } from './routes/fs.js';
@@ -119,6 +120,16 @@ export function createApp(): Hono {
   });
 
   debugRoutes(app);
+
+  benchRoutes(
+    {
+      engine: () => runtime.engine,
+      environment: runtime.environment,
+      persistenceFactory: persistenceSelftestFactory,
+      coldFactory: coldSelftestFactory,
+    },
+    app,
+  );
 
   app.all('*', (c) => c.json({ ok: false, error: 'not_found' }, 404));
 

@@ -378,3 +378,22 @@ describe('app routes', () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe('bench route', () => {
+  it('micro bench returns report on memory runtime', async () => {
+    const app = createApp();
+    const res = await app.request('/api/sys/bench', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ scopes: ['micro'] }),
+    });
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as {
+      ok: boolean;
+      data: { environment: string; micro: unknown };
+    };
+    expect(json.ok).toBe(true);
+    expect(json.data.environment).toBe('memory');
+    expect(json.data.micro).not.toBeNull();
+  });
+});
