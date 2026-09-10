@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { debugRoutes } from './routes/debug.js';
 import { execRoutes } from './routes/exec.js';
 import { fsRoutes } from './routes/fs.js';
 import { jobsRoutes } from './routes/jobs.js';
@@ -116,6 +117,8 @@ export function createApp(): Hono {
       c.header('x-sync-status', `flush-failed:${String(error)}`);
     }
   });
+
+  debugRoutes(app);
 
   app.all('*', (c) => c.json({ ok: false, error: 'not_found' }, 404));
 
