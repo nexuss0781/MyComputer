@@ -57,25 +57,6 @@ AS $$
 $$;
 `;
 
-async function runMigration(
-  dbUrl: string,
-  sqlOverride?: string,
-): Promise<{ ok: boolean; error?: string }> {
-  try {
-    const postgres = (await import('postgres')).default;
-    const url = dbUrl.includes('sslmode=')
-      ? dbUrl
-      : `${dbUrl}${dbUrl.includes('?') ? '&' : '?'}sslmode=no-verify`;
-    const sql = postgres(url, { connect_timeout: 15, max: 2 });
-    await sql.unsafe(sqlOverride ?? MIGRATION_SQL);
-    await sql`NOTIFY pgrst, 'reload schema'`;
-    await sql.end();
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: String(err) };
-  }
-}
-
 export function debugRoutes(app: Hono): void {
   app.get('/api/sys/debug-env', (c) => {
     return c.json({
@@ -143,31 +124,15 @@ export function debugRoutes(app: Hono): void {
     }
 
     try {
-      const result = await runMigration(dbUrl);
-      if (result.ok) {
-        return c.json({ ok: true, message: 'Migration 0004 applied + schema reloaded' });
-      }
-      return c.json({ ok: false, error: result.error }, 500);
-    } catch (err) {
-      return c.json({ ok: false, error: `Migration handler crashed: ${String(err)}` }, 500);
-    }
-  });
-
-  app.get('/api/sys/migrate-test', async (c) => {
-    const dbUrl =
-      process.env.DATABASE_URL ??
-      process.env.POSTGRES_URL_NON_POOLING ??
-      process.env.POSTGRES_PRISMA_URL;
-    if (!dbUrl) return c.json({ ok: false, error: 'no db url' }, 500);
-    try {
       const postgres = (await import('postgres')).default;
       const url = dbUrl.includes('sslmode=')
         ? dbUrl
         : `${dbUrl}${dbUrl.includes('?') ? '&' : '?'}sslmode=no-verify`;
-      const sql = postgres(url, { connect_timeout: 10, max: 1 });
-      const rows = await sql`SELECT 1 AS test`;
+      const sql = postgres(url, { connect_timeout: 15, max: 2 });
+      await sql.unsafe(MIGRATION_SQL);
+      await sql`NOTIFY pgrst, 'reload schema'`;
       await sql.end();
-      return c.json({ ok: true, data: rows });
+      return c.json({ ok: true, message: 'Migration 0004 applied + schema reloaded' });
     } catch (err) {
       return c.json({ ok: false, error: String(err) }, 500);
     }

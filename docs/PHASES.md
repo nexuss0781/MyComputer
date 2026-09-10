@@ -233,9 +233,11 @@ via tsx on Node 22, imports `app/core/*` via relative path (same-code-different-
 host), polls up to 5 jobs/run, heartbeats during exec, writes result to
 Telegram via BridgeClient, journals via Oplog, marks done/failed with result
 ref in `payload`. `worker.yml` adds `workflow_dispatch` + 5-min cron with
-concurrency guard and GH secrets env. **Blocked dependency:** GH repo secrets
-`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BRIDGE_URL`, `BRIDGE_TOKEN`,
-`BRIDGE_CHANNEL_ID` for real worker run.
+concurrency guard and GH secrets env. Migration 0004 applied via
+`/api/sys/migrate` endpoint (postgres.js over POSTGRES_URL_NON_POOLING).
+Real GH worker run verified: dispatch train job → worker claimed job
+`gh-34531624069` → executed → wrote back result to Supabase. Full pipeline
+end-to-end confirmed.
 
 **→ Milestone M3 (with Phase 6).**
 

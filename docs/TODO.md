@@ -145,7 +145,7 @@ Connected to the real bridge at `https://telegram-bot-api-1.onrender.com`
 - [x] stale-claim reaper
 - [x] dispatch → worker → done test
 
-**P7 exit report (2026-09-10):** Local gates all green (typecheck, lint,
+**P7 exit report (2026-09-11):** Local gates all green (typecheck, lint,
 format:check, 103 tests: 19 shared + 67 app + 15 sdk + 2 worker). CI migrations
 job applies `0004_jobs_claim.sql` (atomic `claim_job` + `requeue_stale_jobs`
 RPCs) and verifies functions via psql. `POST /api/sys/dispatch` inserts a
@@ -161,10 +161,11 @@ exec, writes result to Telegram via BridgeClient, journals exec result via
 Oplog, marks done/failed with result ref in `payload`. `.github/workflows/worker.yml`
 adds `workflow_dispatch` + 5-min cron with concurrency guard and GH secrets env.
 CI `ci.yml` migrations job verifies both RPC functions (claim returns 1 row,
-requeueStale requeues 1 job). Local worker tests pass (2 tests). **Blocked
-dependency:** GH repo secrets `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
-`BRIDGE_URL`, `BRIDGE_TOKEN`, `BRIDGE_CHANNEL_ID` required for real GH worker
-run — recorded below.
+requeueStale requeues 1 job). Migration 0004 applied via `/api/sys/migrate`
+endpoint using `POSTGRES_URL_NON_POOLING` env var (postgres.js). GH repo
+secrets set. Real GH worker run verified: dispatch `train` job → worker claimed
+job `gh-34531624069` → executed (expected error: empty payload) → wrote back
+result to Supabase `jobs` table. Full pipeline end-to-end confirmed.
 
 ## Phase 8 — Bench & Harden
 
@@ -198,6 +199,7 @@ run — recorded below.
       `https://telegram-bot-api-1.onrender.com`, bot `8910064908`,
       channel `-1004327844302`, Vercel envs `BRIDGE_URL`/`BRIDGE_TOKEN`/
       `BRIDGE_CHANNEL_ID` set
-- [ ] **GH Actions worker secrets** — repo secrets `SUPABASE_URL`,
+- [x] **GH Actions worker secrets** — repo secrets `SUPABASE_URL`,
       `SUPABASE_SERVICE_ROLE_KEY`, `BRIDGE_URL`, `BRIDGE_TOKEN`,
-      `BRIDGE_CHANNEL_ID` required for real worker run (Phase 7 live proof)
+      `BRIDGE_CHANNEL_ID` set + migration 0004 applied via `/api/sys/migrate`
+      endpoint using `POSTGRES_URL_NON_POOLING` env var

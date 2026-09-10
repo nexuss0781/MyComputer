@@ -12,8 +12,8 @@ live (18 base + 4 persistence + 4 cold, coldVerified true, batch flush ~92 ms).
 Phase 2/3/4/5 exit reports in `docs/TODO.md`. Phase 6 (SDK) exit report
 (`eaef9cb`, `7d637b2`, `84913e8`) in `docs/PHASES.md`.
 
-**Current: Phase 7 — GH Actions Worker.** Phase 7 code complete (local gates
-green, 103 tests). Blocked on GH repo secrets for real worker run.
+**Current: Phase 7 — GH Actions Worker.** Phase 7 code complete, real GH
+worker run verified (end-to-end: dispatch → claim → execute → write-back).
 
 ## Roadmap
 
