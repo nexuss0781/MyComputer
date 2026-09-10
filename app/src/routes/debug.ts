@@ -58,26 +58,18 @@ $$;
 `;
 
 async function runMigration(dbUrl: string): Promise<{ ok: boolean; error?: string }> {
-  const { Client } = await import('pg');
+  const postgres = (await import('postgres')).default;
   const url = dbUrl.includes('sslmode=')
     ? dbUrl
     : `${dbUrl}${dbUrl.includes('?') ? '&' : '?'}sslmode=no-verify`;
-  const client = new Client({ connectionString: url, connectionTimeoutMillis: 15_000 });
-  await client.connect();
+  const sql = postgres(url, { connect_timeout: 15, max: 1 });
   try {
-    await client.query('BEGIN');
-    try {
-      await client.query(MIGRATION_SQL);
-      await client.query('COMMIT');
-    } catch (err) {
-      await client.query('ROLLBACK');
-      throw err;
-    }
+    await sql.unsafe(MIGRATION_SQL);
     return { ok: true };
   } catch (err) {
     return { ok: false, error: String(err) };
   } finally {
-    await client.end();
+    await sql.end();
   }
 }
 
