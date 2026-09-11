@@ -179,7 +179,7 @@ const deleteTargets = [...fileMap.keys()].slice(0, 30);
 const deleteTimes: number[] = [];
 for (const p of deleteTargets) {
   const t0 = Date.now();
-  await engine.delete(sid, p);
+  await engine.remove(sid, p);
   deleteTimes.push(Date.now() - t0);
   fileMap.delete(p);
 }
