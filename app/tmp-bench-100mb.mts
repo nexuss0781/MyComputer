@@ -66,7 +66,7 @@ console.log(`Session: ${sid} (${Date.now() - t0} ms)`);
 
 // 2. Write 100 MB — flush every 4 chunks to avoid single-RPC payload blowup
 const t1 = Date.now();
-const FLUSH_EVERY = 4;
+const FLUSH_EVERY = 1;
 let totalFlushed = 0;
 let flushCount = 0;
 for (let i = 0; i < TOTAL_CHUNKS; i++) {
