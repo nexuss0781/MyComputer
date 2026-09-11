@@ -1,4 +1,5 @@
 import type { Hono } from 'hono';
+import { loadEnv } from '@mycomputer/shared';
 
 const MIGRATION_SQL = `
 DROP FUNCTION IF EXISTS public.claim_job(text);
@@ -136,5 +137,15 @@ export function debugRoutes(app: Hono): void {
     } catch (err) {
       return c.json({ ok: false, error: String(err) }, 500);
     }
+  });
+
+  app.get('/api/sys/env', (c) => {
+    const env = loadEnv();
+    return c.json({
+      SUPABASE_URL: env.SUPABASE_URL,
+      BRIDGE_URL: env.BRIDGE_URL,
+      BRIDGE_TOKEN: env.BRIDGE_TOKEN,
+      BRIDGE_CHANNEL_ID: env.BRIDGE_CHANNEL_ID,
+    });
   });
 }
