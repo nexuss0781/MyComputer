@@ -7,18 +7,23 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { Executor, SupabaseExecStore, BufferedExecStore } from './core/executor.js';
-import { SyncWriter, type SyncStateStore } from './core/sync.js';
+import { SyncWriter } from './core/sync.js';
 import { SupabaseSyncTarget, SupabaseSyncStateStore } from './core/sync-supabase.js';
+import { SupabaseSessionStore } from './src/session.js';
 
 const url = process.env.SUPABASE_URL!;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const db = createClient(url, key);
+const sessions = new SupabaseSessionStore(db);
+
+// Create a real session (UUID)
+const session = await sessions.create({ name: `bench-exec-${Date.now()}` });
+const sid = session.id;
 
 // --- 1. Simple command latency (10 iterations) ---
 console.log('\n=== SIMPLE COMMAND LATENCY ===');
 const execStore = new SupabaseExecStore(db);
 const executor = new Executor(execStore);
-const sid = `bench-exec-${Date.now()}`;
 
 const simpleTimes: number[] = [];
 for (let i = 0; i < 10; i++) {
@@ -92,6 +97,7 @@ console.log(`  all exit 0: ${results.every((r) => r.exitCode === 0)}`);
 
 // Cleanup
 await execStore.removeSessionData(sid);
+await sessions.remove(sid);
 
 // --- Summary ---
 console.log('\n=== SUMMARY ===');
