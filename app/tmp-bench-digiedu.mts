@@ -87,11 +87,12 @@ const sid = session.id;
 await engine.sessionInit(sid);
 console.log(`Session: ${sid}\n`);
 
-// ── 1. WRITE all files ────────────────────────────────────────────
+// ── 1. WRITE all files (flush every 50) ───────────────────────────
 console.log('--- WRITE ---');
 const fileMap = new Map<string, { path: string; content: Buffer; checksum: string }>();
 const tWrite = Date.now();
 let writeBytes = 0;
+let writeFlushes = 0;
 for (let i = 0; i < textFiles.length; i++) {
   const absPath = textFiles[i]!;
   const relPath = '/' + relative(CLONE_DIR, absPath);
@@ -101,20 +102,17 @@ for (let i = 0; i < textFiles.length; i++) {
 
   await engine.write(sid, relPath, new Uint8Array(content));
   writeBytes += content.byteLength;
-  if ((i + 1) % 20 === 0 || i === textFiles.length - 1) {
-    process.stdout.write(`\r  ${i + 1}/${textFiles.length} files (${(writeBytes / 1024).toFixed(0)} KiB)`);
+
+  if ((i + 1) % 50 === 0 || i === textFiles.length - 1) {
+    await writer.flush();
+    writeFlushes += 1;
+    process.stdout.write(`\r  ${i + 1}/${textFiles.length} files (${(writeBytes / 1024).toFixed(0)} KiB, ${writeFlushes} flushes)`);
   }
 }
 const writeMs = Date.now() - tWrite;
-console.log(`\n  ${writeMs} ms (${(writeBytes / 1024 / (writeMs / 1000)).toFixed(0)} KiB/s)`);
+console.log(`\n  ${writeMs} ms (${(writeBytes / 1024 / (writeMs / 1000)).toFixed(0)} KiB/s, ${writeFlushes} flushes)`);
 
-// ── 2. FLUSH ──────────────────────────────────────────────────────
-console.log('--- FLUSH ---');
-const tFlush = Date.now();
-const stats = await writer.flush();
-console.log(`  ${Date.now() - tFlush} ms (${stats.flushed} items)`);
-
-// ── 3. LIST (read directory) ──────────────────────────────────────
+// ── 2. LIST (read directory) ──────────────────────────────────────
 console.log('--- LIST (100 iterations) ---');
 const listPaths = ['/', '/src', '/public'];
 const listTimes: number[] = [];
