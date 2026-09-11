@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       scope:
-        description: 'bench scope (exec, 100mb, micro)'
+        description: 'bench scope (exec, 100mb, micro, digiedu)'
         required: false
         default: 'micro'
 
@@ -48,3 +48,12 @@ jobs:
           BRIDGE_TOKEN: ${{ secrets.BRIDGE_TOKEN }}
           BRIDGE_CHANNEL_ID: ${{ secrets.BRIDGE_CHANNEL_ID }}
         run: pnpm --filter @mycomputer/worker exec tsx ../../app/tmp-bench.mts
+      - name: run digiedu benchmark
+        if: inputs.scope == 'digiedu'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BRIDGE_URL: ${{ secrets.BRIDGE_URL }}
+          BRIDGE_TOKEN: ${{ secrets.BRIDGE_TOKEN }}
+          BRIDGE_CHANNEL_ID: ${{ secrets.BRIDGE_CHANNEL_ID }}
+        run: pnpm --filter @mycomputer/worker exec tsx ../../app/tmp-bench-digiedu.mts
