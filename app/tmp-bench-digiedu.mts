@@ -114,7 +114,9 @@ console.log(`\n  ${writeMs} ms (${(writeBytes / 1024 / (writeMs / 1000)).toFixed
 
 // ── 2. LIST (read directory) ──────────────────────────────────────
 console.log('--- LIST (100 iterations) ---');
-const listPaths = ['/', '/src', '/public'];
+const rootEntries = await engine.list(sid, '/');
+const subDirs = rootEntries.filter((e) => e.type === 'dir').map((e) => e.path).slice(0, 3);
+const listPaths = ['/', ...subDirs];
 const listTimes: number[] = [];
 for (let i = 0; i < 100; i++) {
   const p = listPaths[i % listPaths.length]!;
