@@ -189,6 +189,24 @@ micro (sub-ms buffer append), flush-scale (linear), crash-recovery
 (replayed > 0, byte-identical), corruption detection (ChecksumError),
 multi-GB streaming pipeline (checksum-verified). M4 milestone reached.
 
+## Phase 9 — Native FS Adapter (`@mycomputer/sdk/fsa`)
+
+- [x] `VirtualFs` class: readFile, writeFile, appendFile, mkdir, readdir
+       (+Dirent), rename, copyFile, rm, unlink, rmdir, stat/lstat, access,
+       open→FileHandle, createReadStream, createWriteStream
+- [x] `VirtualFsFileHandle`: read, write, stat, truncate, close
+- [x] Local metadata cache (inodes + directory listings)
+- [x] `mountFs()` on ComputerClient + `@mycomputer/sdk/fsa` subpath export
+- [x] Buffer/Stats/Dirent semantics
+- [x] unit tests `fsa.test.ts` (15 tests) — mock transport, cache, FileHandle, streams
+- [x] integration tests `fsa.integration.test.ts` (14 tests) — memory runtime
+
+**P9 exit report (2026-09-11):** 122 tests (19 shared + 72 app + 44 sdk + 2
+worker), typecheck/lint/format:check all green. `VirtualFs` adapter ships
+with local metadata cache (zero HTTP on second stat/readdir), FileHandle
+(read/write/stat/close), streams (createReadStream/createWriteStream),
+and Buffer semantics. 10 MiB stream round-trip byte-identical verified.
+
 ---
 
 ## Epics
@@ -197,6 +215,7 @@ multi-GB streaming pipeline (checksum-verified). M4 milestone reached.
 - [x] **M2** — fast + forever durability (P4 + P5)
 - [x] **M3** — SDK + long-run worker (P6 + P7)
 - [x] **M4** — scale proof + benchmarks (P8)
+- [x] **M5** — native FS adapter (P9)
 
 ## External dependencies awaiting
 

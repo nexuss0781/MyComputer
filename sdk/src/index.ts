@@ -1,4 +1,5 @@
 import type { Execution, Inode, SessionRow, WriteResult } from '@mycomputer/shared';
+import { VirtualFs, type VirtualFsConfig } from './fsa.js';
 import { HttpTransport, codec } from './http.js';
 import type {
   ChecksumOutput,
@@ -61,6 +62,10 @@ export class ComputerClient {
 
   mount(sessionId: string): SessionFacade {
     return mountSession(this, sessionId);
+  }
+
+  mountFs(sessionId: string, config?: VirtualFsConfig): VirtualFs {
+    return new VirtualFs(this, sessionId, config);
   }
 
   // ── fs ───────────────────────────────────────────────────────────
@@ -184,3 +189,11 @@ export type {
   SessionFacade,
   WriteOutput,
 } from './session.js';
+
+export {
+  VirtualFs,
+  VirtualFsFileHandle,
+  type VirtualFsConfig,
+  type VirtualFsStat,
+  type VirtualFsDirent,
+} from './fsa.js';

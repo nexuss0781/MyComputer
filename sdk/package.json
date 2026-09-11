@@ -11,6 +11,10 @@
     "./fssio": {
       "types": "./dist/fssio.d.ts",
       "default": "./dist/fssio.js"
+    },
+    "./fsa": {
+      "types": "./dist/fsa.d.ts",
+      "default": "./dist/fsa.js"
     }
   },
   "scripts": {

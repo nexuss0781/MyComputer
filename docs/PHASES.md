@@ -273,12 +273,47 @@ detection (`ChecksumError`), and multi-GB streaming pipeline
 
 ---
 
+## Phase 9 — Native FS Adapter (`@mycomputer/sdk/fsa`)
+
+**Goal:** real `fs.promises`-compatible filesystem handle for the virtual disk.
+
+- [x] `VirtualFs` class: `readFile`, `writeFile`, `appendFile`, `mkdir`,
+       `readdir` (+`withFileTypes`→Dirent), `rename`, `copyFile`, `rm`,
+       `unlink`, `rmdir`, `stat`/`lstat`, `access`, `open`→`FileHandle`,
+       `createReadStream`, `createWriteStream`
+- [x] `VirtualFsFileHandle`: `read`, `write`, `stat`, `truncate`, `close`
+- [x] Local metadata cache (inodes + directory listings), invalidated on mutations
+- [x] `mountFs(sessionId)` on `ComputerClient` + `@mycomputer/sdk/fsa` subpath export
+- [x] Buffer semantics (returns `Buffer`, accepts `Buffer | string | Uint8Array`)
+- [x] Stats/ Dirent shapes (size, mode, mtime, isFile, isDirectory, etc.)
+
+Tests:
+- [x] unit: `fsa.test.ts` — mock transport, cache behavior, FileHandle lifecycle, streams
+- [x] integration: `fsa.integration.test.ts` — 14 tests against memory app runtime
+       (writeFile→readFile, Dirent readdir, stat shape, cache hit, mkdir -p,
+       rename, copyFile, rm recursive, FileHandle read/write/close,
+       10 MiB createReadStream→createWriteStream byte-identical, appendFile,
+       lstat alias, access, mkdir -p)
+
+**Exit:** `@mycomputer/sdk/fsa` subpath builds; `VirtualFs` implements the full
+fs.promises subset against memory runtime; cache proof (zero HTTP on second
+stat/readdir); FileHandle read/write/close works; 10 MiB stream round-trip
+byte-identical; repo gates green.
+
+**Status: COMPLETE** — 122 tests (19 shared + 72 app + 44 sdk + 2 worker),
+typecheck/lint/format:check all green. `VirtualFs` adapter ships with
+local metadata cache, FileHandle, streams, and Buffer semantics.
+
+**→ Milestone M5 (with Phase 10, if pursued).**
+
+---
+
 ## Completion order checklist
 
 ```
-P1 ─► P2 ─► P3 ─► P4 ─► P5 ─► P6 ─► P7 ─► P8
-      └── M1 ──┘      └── M2 ──┘      └M3┘    └ M4 ┘
+P1 ─► P2 ─► P3 ─► P4 ─► P5 ─► P6 ─► P7 ─► P8 ─► P9
+      └── M1 ──┘      └── M2 ──┘      └M3┘    └ M4 ┘   └ M5 ┘
 ```
 
 Dependencies: P4 needs P2 (fs) + P3 (exec). P5 needs P4. P6 needs P2–P5. P7
-needs P4 (queue) + P5 (sink). P8 needs everything.
+needs P4 (queue) + P5 (sink). P8 needs everything. P9 needs P6 (SDK).

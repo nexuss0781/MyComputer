@@ -5,12 +5,15 @@ operations for AI training on GitHub Actions.
 
 ## Where we are
 
-**Phases 1–8 complete** — all milestones M1–M4 reached. CI green on
+**Phases 1–9 complete** — all milestones M1–M5 reached. CI green on
 github.com/nexuss0781/MyComputer (public), Supabase schema applied +
 verified (self-healing migrations run from Vercel), prod selftest `26/26`
 live (18 base + 4 persistence + 4 cold, coldVerified true, batch flush
 ~92 ms). Phase 8 exit report (`docs/BENCH.md`): 108 tests, all bench +
-drill suites pass, M4 milestone reached.
+drill suites pass, M4 milestone reached. Phase 9: `@mycomputer/sdk/fsa`
+ships `VirtualFs` — a real `fs.promises`-compatible adapter for the
+virtual disk with local metadata cache, FileHandle, streams, and Buffer
+semantics. 122 tests total.
 
 **All milestones complete.** The system is production-ready: virtual
 filesystem + terminal for agentic AI, durable writes to Supabase +
@@ -30,6 +33,7 @@ benchmarks at scale.
 | 6     | SDK                                   | `@mycomputer/sdk` for agents                         |
 | 7     | GH Actions Worker                     | Long-running ops / AI training dispatch              |
 | 8     | Bench & Harden                        | Benchmarks, recovery tests, large-file (multi-GB) proof |
+| 9     | Native FS Adapter                     | `@mycomputer/sdk/fsa` — fs.promises-compatible handle |
 
 ## Milestones
 
