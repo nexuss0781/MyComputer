@@ -212,13 +212,13 @@ const sortedCs = [...csTimes].sort((a, b) => a - b);
 console.log(`  p50=${sortedCs[49]} ms, p95=${sortedCs[94]} ms, min=${sortedCs[0]} ms`);
 
 // ── Cleanup ───────────────────────────────────────────────────────
+await engine.resetSession(sid);
 await sessions.remove(sid);
 
 // ── Summary ───────────────────────────────────────────────────────
 console.log(`\n=== RESULTS ===`);
 console.log(`Project:        Digital-Edu (${textFiles.length} files, ${(totalBytes / 1024).toFixed(0)} KiB)`);
-console.log(`Write all:      ${writeMs} ms (${(writeBytes / 1024 / (writeMs / 1000)).toFixed(0)} KiB/s)`);
-console.log(`Flush:          ${Date.now() - tFlush} ms`);
+console.log(`Write all:      ${writeMs} ms (${(writeBytes / 1024 / (writeMs / 1000)).toFixed(0)} KiB/s, ${writeFlushes} flushes)`);
 console.log(`List:           p50=${sortedList[49]} ms, p95=${sortedList[94]} ms`);
 console.log(`Read:           p50=${sortedRead[49]} ms, p95=${sortedRead[94]} ms`);
 console.log(`Edit:           p50=${sortedEdit[9]} ms, p95=${sortedEdit[18]} ms`);

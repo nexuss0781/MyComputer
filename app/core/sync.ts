@@ -376,11 +376,9 @@ function contentFromOp(op: OplogRecord): { bytes: Uint8Array; mime: string | nul
 
 /**
  * Replays journal ops newer than the session's flush watermark back into the
- * SyncWriter and flushes. The journal carries full byte content for
- * write/append ops, so a crash between journal append and batch flush is fully
- * recoverable. Exec ops are not replayed: their output is captured at run time
- * and made durable through the buffered insert path. Returns the number of
- * ops replayed.
+ * SyncWriter and flushes. Write/append ops without content (metadata-only
+ * journal entries) are skipped — their blocks are expected to already be
+ * durable. Returns the number of ops replayed.
  */
 export async function reconcileFromJournal(ctx: ReconcileContext): Promise<number> {
   const { writer, journal, state, sessionId } = ctx;

@@ -96,7 +96,7 @@ export class FsEngine {
       path,
       bytes: content.byteLength,
       mime: mime ?? null,
-      content: Buffer.from(content).toString('base64'),
+      checksum: sha256Hex(content),
     };
     try {
       const plan = await this.computeWrite(sessionId, path, content, mime);
@@ -217,7 +217,7 @@ export class FsEngine {
     const input = {
       path,
       bytes: content.byteLength,
-      content: Buffer.from(content).toString('base64'),
+      checksum: sha256Hex(content),
     };
     try {
       const existing = await this.resolve(sessionId, path);
