@@ -160,7 +160,9 @@ console.log('--- RENAME (10 files) ---');
 const renameTargets = editTargets.slice(0, 10);
 const renameTimes: number[] = [];
 for (const p of renameTargets) {
-  const newPath = p.replace(/(\.\w+)$/, '-renamed$1');
+  const dotIdx = p.lastIndexOf('.');
+  const newPath = dotIdx > 0 ? `${p.slice(0, dotIdx)}-renamed${p.slice(dotIdx)}` : `${p}-renamed`;
+  if (newPath === p) continue;
   const t0 = Date.now();
   await engine.move(sid, p, newPath);
   renameTimes.push(Date.now() - t0);
