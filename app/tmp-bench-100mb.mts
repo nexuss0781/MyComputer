@@ -1,5 +1,5 @@
 /**
- * 100 MB end-to-end benchmark:
+ * 100 MB end-to-end benchmark on GitHub Actions:
  * write → Supabase flush → Telegram drain → prune → cold restore
  */
 import { createClient } from '@supabase/supabase-js';
@@ -34,7 +34,7 @@ const bridgeUrl = process.env.BRIDGE_URL!;
 const bridgeToken = process.env.BRIDGE_TOKEN!;
 const bridgeChannelId = process.env.BRIDGE_CHANNEL_ID!;
 
-const db = createClient(url, key);
+const db = createClient(url, key, { db: { schema: 'public' } });
 const syncState = new SupabaseSyncStateStore(db);
 const journal = new Oplog(new SupabaseJournalStore(db));
 const target = new SupabaseSyncTarget(db, syncState);
@@ -64,39 +64,33 @@ const session = await sessions.create({ name: `bench-100mb-${Date.now()}` });
 const sid = session.id;
 console.log(`Session: ${sid} (${Date.now() - t0} ms)`);
 
-// 2. Write 100 MB — flush every 4 chunks to avoid single-RPC payload blowup
+// 2. Write 100 MB as separate files (avoids append recombine bottleneck)
 const t1 = Date.now();
-const FLUSH_EVERY = 1;
-let totalFlushed = 0;
-let flushCount = 0;
 for (let i = 0; i < TOTAL_CHUNKS; i++) {
-  const size = Math.min(CHUNK_BYTES, TOTAL_BYTES - i * CHUNK_BYTES);
-  const chunk = deterministicBytes(i * 31, size);
-  if (i === 0) await engine.write(sid, '/bench.bin', chunk);
-  else await engine.append(sid, '/bench.bin', chunk);
+  const chunk = deterministicBytes(i * 31, CHUNK_BYTES);
+  const path = `/chunk-${String(i).padStart(3, '0')}.bin`;
+  await engine.write(sid, path, chunk);
 
-  if ((i + 1) % FLUSH_EVERY === 0 || i === TOTAL_CHUNKS - 1) {
-    const tF = Date.now();
-    const s = await writer.flush();
-    totalFlushed += s.flushed;
-    flushCount += 1;
-    process.stdout.write(`\r  Write+flush: ${i + 1}/${TOTAL_CHUNKS} (${Date.now() - tF} ms flush)`);
-  }
+  // Flush every chunk to Supabase
+  const tF = Date.now();
+  await writer.flush();
+  process.stdout.write(`\r  Write+flush: ${i + 1}/${TOTAL_CHUNKS} (last flush: ${Date.now() - tF} ms)`);
 }
 const writeMs = Date.now() - t1;
-console.log(`\n  Write+flush: ${writeMs} ms (${(SIZE_MB / (writeMs / 1000)).toFixed(1)} MiB/s, ${flushCount} flushes, ${totalFlushed} items)`);
+console.log(`\n  Write+flush: ${writeMs} ms (${(SIZE_MB / (writeMs / 1000)).toFixed(1)} MiB/s)`);
 
-// 4. Drain to Telegram
+// 3. Drain to Telegram
 const t3 = Date.now();
 const drain = await sink.drain(sid);
 console.log(`  Drain: ${Date.now() - t3} ms (${drain.uploaded} docs)`);
 
-// 5. Prune
+// 4. Prune all blocks
 const t4 = Date.now();
-await db.from('blocks').update({ data: null }).eq('session_id', sid).eq('path', '/bench.bin');
-console.log(`  Prune: ${Date.now() - t4} ms`);
+const { error: pruneErr } = await db.from('blocks').update({ data: null }).eq('session_id', sid);
+if (pruneErr) console.error('  Prune error:', pruneErr.message);
+else console.log(`  Prune: ${Date.now() - t4} ms`);
 
-// 6. Cold restore from Telegram
+// 5. Cold restore — read back all chunks from Telegram and verify checksum
 const coldState = new SupabaseSyncStateStore(db);
 const coldTarget = new SupabaseSyncTarget(db, coldState);
 const coldWriter = new SyncWriter({ target: coldTarget, state: coldState });
@@ -108,29 +102,31 @@ const coldEngine = new FsEngine(
 );
 
 const t5 = Date.now();
-const restored = await coldEngine.read(sid, '/bench.bin');
-const coldMs = Date.now() - t5;
-const restoredBytes = Buffer.from(restored.content, 'base64').byteLength;
-
-// Checksum
-const full = new Uint8Array(TOTAL_BYTES);
+let allMatch = true;
+let restoredBytes = 0;
 for (let i = 0; i < TOTAL_CHUNKS; i++) {
-  const chunk = deterministicBytes(i * 31, Math.min(CHUNK_BYTES, TOTAL_BYTES - i * CHUNK_BYTES));
-  full.set(chunk, i * CHUNK_BYTES);
+  const path = `/chunk-${String(i).padStart(3, '0')}.bin`;
+  const restored = await coldEngine.read(sid, path);
+  const bytes = Buffer.from(restored.content, 'base64');
+  restoredBytes += bytes.byteLength;
+  const expected = sha256Hex(deterministicBytes(i * 31, CHUNK_BYTES));
+  if (restored.checksum !== expected) {
+    allMatch = false;
+    console.error(`  CHECKSUM MISMATCH at chunk ${i}`);
+  }
+  process.stdout.write(`\r  Cold restore: ${i + 1}/${TOTAL_CHUNKS}`);
 }
-const expected = sha256Hex(full);
-const ok = restored.checksum === expected;
-
-console.log(`  Cold restore: ${coldMs} ms (${(restoredBytes / 1024 / 1024 / (coldMs / 1000)).toFixed(1)} MiB/s)`);
-console.log(`  Size: ${(restoredBytes / 1024 / 1024).toFixed(2)} MiB`);
-console.log(`  Checksum: ${ok ? 'PASS' : 'FAIL'}`);
+const coldMs = Date.now() - t5;
+console.log(`\n  Cold restore: ${coldMs} ms (${(restoredBytes / 1024 / 1024 / (coldMs / 1000)).toFixed(1)} MiB/s)`);
+console.log(`  Restored: ${(restoredBytes / 1024 / 1024).toFixed(2)} MiB`);
+console.log(`  Checksum: ${allMatch ? 'ALL PASS' : 'FAIL'}`);
 
 await sessions.delete(sid);
 
 const total = Date.now() - t0;
 console.log(`\n=== RESULTS ===`);
-console.log(`Write+flush:   ${writeMs} ms  (${(SIZE_MB / (writeMs / 1000)).toFixed(1)} MiB/s, ${flushCount} flushes)`);
+console.log(`Write+flush:   ${writeMs} ms  (${(SIZE_MB / (writeMs / 1000)).toFixed(1)} MiB/s)`);
 console.log(`Drain:         ${Date.now() - t3} ms  (${drain.uploaded} docs)`);
 console.log(`Cold restore:  ${coldMs} ms  (${(restoredBytes / 1024 / 1024 / (coldMs / 1000)).toFixed(1)} MiB/s)`);
 console.log(`Total:         ${total} ms`);
-console.log(`Checksum:      ${ok ? 'PASS' : 'FAIL'}`);
+console.log(`Checksum:      ${allMatch ? 'ALL PASS' : 'FAIL'}`);
