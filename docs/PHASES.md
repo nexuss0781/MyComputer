@@ -308,12 +308,76 @@ local metadata cache, FileHandle, streams, and Buffer semantics.
 
 ---
 
+## Phase 10 — FUSE Mount (PLANNED — not started)
+
+**Goal:** mount the virtual disk as an OS-level filesystem so ANY process
+(`cat`, `ls`, `cp`, `git`, python, bash) works on it with real POSIX
+syscalls — no SDK, no JS-only surface.
+
+**Constraint (physical):** FUSE requires a kernel module + a long-running
+daemon on a local host. Runs on the agent's machine (GH Actions runner, dev
+machine, VM), NOT on Vercel. Linux first-class; macOS via macFUSE optional.
+
+### Design (decided at planning time)
+
+- **Engine reuse:** daemon wraps `VirtualFs` (`@mycomputer/sdk/fsa`) as the
+  backing store — same metadata cache, same chunked read/write, same
+  journal + SyncWriter durability. FUSE calls map 1:1 to existing fsa ops:
+  - `getattr` → `stat`
+  - `readdir` → `readdir` (cached dir listing)
+  - `lookup` → `stat`
+  - `open`/`read` → `readFile` ranged / `createReadStream`
+  - `write`/`flush`/`fsync`/`release` → buffered `writeFile` + `fsync`
+    (maps to flushOnWrite / SyncWriter)
+  - `mkdir`/`rmdir`/`rename`/`unlink`/`truncate` → fsa mutations
+- **Caching layers:** kernel page cache (content, free LRU) + daemon inode
+  cache (metadata, reuse `VirtualFs` cache). Read-after-write coherent via
+  the same invalidation the SDK uses.
+- **Buffering for write coupling:** short writes stage in daemon buffer,
+  flush on `fsync`/`release` (matches POSIX: fsync is the durability point).
+  Large writes (`>= chunkSize`) flush immediately.
+- **Stack choice:** `fuse-native` (Node) — stays in one language, reuses
+  `@mycomputer/sdk` directly, no second runtime. Mount daemon as a new
+  workspace `packages/fuse` (or `services/fuse`).
+- **Config:** mount point + session id via env/CLI:
+  `mycomputer-fuse /mnt/mycomputer --session <sid>`.
+- **What stays out of scope:** true kernel-side caching of remote writes;
+  multi-host live coherence (eventual via journal watermark, same as SDK).
+
+### Tasks (checklist)
+
+- [ ] `packages/fuse` scaffold: `mycomputer-fuse` CLI, mount/unmount lifecycle
+- [ ] inode/dir cache adapter over `VirtualFs` (getattr/lookup/readdir)
+- [ ] read path: `open`/`read` via ranged reads + kernel page cache
+- [ ] write path: `write` → buffer → `fsync`/`release` → flushOnWrite; truncate
+- [ ] mutation passthrough: mkdir/rmdir/rename/unlink/access
+- [ ] error mapping: fsa errors → POSIX errno (`ENOENT`, `EIO`, `ENOTEMPTY`)
+- [ ] Linux end-to-end test: mount, `ls`/`cat`/`cp`/`mv`/`rm`, verify Supabase
+- [ ] cross-process coherence test: two mounts, read-after-write
+- [ ] stress: 10 MiB+ files through `cp` and random-access reads
+- [ ] docs: `docs/BENCH.md` FUSE section (mount+first-read cold vs warm)
+
+**Acceptance:**
+- `mount -t mycomputer /path` works from the CLI on a Linux host/GH runner.
+- `ls`, `cat`, `cp`, `mv`, `rm`, `git add` all operate on the mounted disk.
+- Byte-identical round-trip for a 10 MiB file made through FUSE.
+- Durability: `fsync` survives daemon + Vercel restart (journal replay).
+- Coherent read-after-write across two mounts on the same host.
+- Repo gates green; FUSE smoke test runs in CI where fuse is available.
+
+**Status: PLANNED.** Authorized as a plan; implementation on approval.
+
+**→ Milestone M6.**
+
+---
+
 ## Completion order checklist
 
 ```
-P1 ─► P2 ─► P3 ─► P4 ─► P5 ─► P6 ─► P7 ─► P8 ─► P9
-      └── M1 ──┘      └── M2 ──┘      └M3┘    └ M4 ┘   └ M5 ┘
+P1 ─► P2 ─► P3 ─► P4 ─► P5 ─► P6 ─► P7 ─► P8 ─► P9 ─► P10
+      └── M1 ──┘      └── M2 ──┘      └M3┘    └ M4 ┘   └ M5 ┘   (P10 → M6)
 ```
 
 Dependencies: P4 needs P2 (fs) + P3 (exec). P5 needs P4. P6 needs P2–P5. P7
 needs P4 (queue) + P5 (sink). P8 needs everything. P9 needs P6 (SDK).
+P10 needs P9 (uses `VirtualFs` as its backing engine).

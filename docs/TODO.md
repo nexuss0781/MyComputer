@@ -207,6 +207,26 @@ with local metadata cache (zero HTTP on second stat/readdir), FileHandle
 (read/write/stat/close), streams (createReadStream/createWriteStream),
 and Buffer semantics. 10 MiB stream round-trip byte-identical verified.
 
+## Phase 10 — FUSE Mount (PLANNED)
+
+Goal: mount the virtual disk at an OS path (`mount -t mycomputer /path`)
+so ANY process works on it with real POSIX syscalls. Daemon (`fuse-native`)
+wraps `VirtualFs` as engine; needs a local host (GH runner/dev machine),
+not Vercel. Full plan in `docs/PHASES.md`. Tasks:
+
+- [ ] `packages/fuse` scaffold: `mycomputer-fuse` CLI, mount/unmount lifecycle
+- [ ] inode/dir cache over `VirtualFs` (getattr/lookup/readdir)
+- [ ] read path: `open`/`read` via ranged reads + kernel page cache
+- [ ] write path: `write` → buffer → `fsync`/`release` → flushOnWrite; truncate
+- [ ] mutation passthrough: mkdir/rmdir/rename/unlink/access
+- [ ] error mapping: fsa errors → POSIX errno (`ENOENT`, `EIO`, `ENOTEMPTY`)
+- [ ] Linux e2e: mount, `ls`/`cat`/`cp`/`mv`/`rm`, verify Supabase
+- [ ] cross-process coherence test: two mounts, read-after-write
+- [ ] stress: 10 MiB+ files through `cp` and random-access reads
+- [ ] docs: `docs/BENCH.md` FUSE section (cold vs warm metrics)
+
+**Status: PLANNED.** Implementation on approval → M6.
+
 ---
 
 ## Epics
@@ -216,6 +236,7 @@ and Buffer semantics. 10 MiB stream round-trip byte-identical verified.
 - [x] **M3** — SDK + long-run worker (P6 + P7)
 - [x] **M4** — scale proof + benchmarks (P8)
 - [x] **M5** — native FS adapter (P9)
+- [ ] **M6** — FUSE mount (P10, planned)
 
 ## External dependencies awaiting
 

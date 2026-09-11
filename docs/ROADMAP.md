@@ -15,10 +15,10 @@ ships `VirtualFs` — a real `fs.promises`-compatible adapter for the
 virtual disk with local metadata cache, FileHandle, streams, and Buffer
 semantics. 122 tests total.
 
-**All milestones complete.** The system is production-ready: virtual
-filesystem + terminal for agentic AI, durable writes to Supabase +
-Telegram, SDK for agents, long-running ops on GH Actions, and verified
-benchmarks at scale.
+**Phase 10 — FUSE Mount:** planned. Exposes the virtual disk at a real
+OS path (`mount -t mycomputer /path`) so any process operates on it with
+POSIX syscalls. Daemon wraps `VirtualFs`, runs on the agent host (GH runner /
+dev machine). Plan in `docs/PHASES.md`. Awaiting approval for M6.
 
 ## Roadmap
 
@@ -34,6 +34,7 @@ benchmarks at scale.
 | 7     | GH Actions Worker                     | Long-running ops / AI training dispatch              |
 | 8     | Bench & Harden                        | Benchmarks, recovery tests, large-file (multi-GB) proof |
 | 9     | Native FS Adapter                     | `@mycomputer/sdk/fsa` — fs.promises-compatible handle |
+| 10    | **FUSE Mount (planned)**              | OS-level filesystem: `mount -t mycomputer /path` — any process reads/writes the virtual disk as a real path |
 
 ## Milestones
 
@@ -57,6 +58,16 @@ benchmarks at scale.
   + drill suites pass (micro sub-ms, flush-scale linear, crash-recovery replayed
   + byte-identical, corruption detection via ChecksumError, multi-GB streaming
   pipeline checksum-verified). Benchmark report in `docs/BENCH.md`.
+- **M5 (Phase 9):** the disk speaks `fs.promises`. `@mycomputer/sdk/fsa`
+  ships `VirtualFs` (~414 lines TS, zero deps): readFile/writeFile/appendFile,
+  mkdir/readdir+Dirent, rename/copyFile/rm, stat/lstat/access,
+  open→FileHandle, streams; local metadata cache invalidated on mutations.
+  122 tests, all gates green.
+- **M6 (Phase 10 — planned):** the disk is a path. FUSE mount exposes the
+  virtual disk at `mount -t mycomputer /path` so any process (`cat`, `ls`,
+  `vim`, `cp`, `git`, any language) operates on it with real POSIX syscalls.
+  Kernel page cache for content, daemon-side inode/dir cache reusing
+  `VirtualFs` engine, write-through to the same journal + SyncWriter backend.
 
 ## Definition of done
 
