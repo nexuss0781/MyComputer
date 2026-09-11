@@ -23,4 +23,4 @@ jobs:
           BRIDGE_URL: ${{ secrets.BRIDGE_URL }}
           BRIDGE_TOKEN: ${{ secrets.BRIDGE_TOKEN }}
           BRIDGE_CHANNEL_ID: ${{ secrets.BRIDGE_CHANNEL_ID }}
-        run: npx tsx app/tmp-bench-100mb.mts
+        run: pnpm --filter @mycomputer/worker exec tsx ../../app/tmp-bench-100mb.mts
