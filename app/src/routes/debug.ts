@@ -1,5 +1,5 @@
-import type { Hono } from 'hono';
 import { loadEnv } from '@mycomputer/shared';
+import type { Hono } from 'hono';
 
 const MIGRATION_SQL = `
 DROP FUNCTION IF EXISTS public.claim_job(text);
