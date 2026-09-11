@@ -4,7 +4,7 @@ import type {
   BridgeLike,
   BridgeUploadInput,
   BridgeUploadResult,
-} from '@mycomputer/shared';
+} from '@nexuss0781/shared';
 
 export interface MockBridgeEntry {
   msgId: number;

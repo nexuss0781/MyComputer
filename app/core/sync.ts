@@ -1,5 +1,5 @@
-import type { Inode } from '@mycomputer/shared';
-import type { Execution } from '@mycomputer/shared';
+import type { Inode } from '@nexuss0781/shared';
+import type { Execution } from '@nexuss0781/shared';
 import type { BlockRow } from './backend.js';
 import { chunkBytes, sha256Hex } from './chunker.js';
 import type { OplogRecord } from './oplog.js';

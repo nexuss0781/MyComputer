@@ -6,7 +6,7 @@ import { ComputerClient } from './index.js';
 
 const sha256 = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 
-describe('@mycomputer/sdk fsa integration (memory app runtime)', () => {
+describe('@nexuss0781/mycomputer fsa integration (memory app runtime)', () => {
   let client: ComputerClient;
   let cleanup: (() => Promise<void>) | null = null;
 

@@ -1,4 +1,4 @@
-import type { WriteResult } from '@mycomputer/shared';
+import type { WriteResult } from '@nexuss0781/shared';
 import type { ComputerClient } from './index.js';
 import type { ReadOptions } from './session.js';
 

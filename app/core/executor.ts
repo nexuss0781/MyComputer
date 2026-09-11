@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { Execution } from '@mycomputer/shared';
+import type { Execution } from '@nexuss0781/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { SyncWriter } from './sync.js';
 

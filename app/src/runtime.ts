@@ -1,5 +1,5 @@
-import { BridgeClient } from '@mycomputer/shared';
-import { loadEnv } from '@mycomputer/shared';
+import { BridgeClient } from '@nexuss0781/shared';
+import { loadEnv } from '@nexuss0781/shared';
 import { type SupabaseClient, createClient } from '@supabase/supabase-js';
 import type { FsBackend } from '../core/backend.js';
 import { BatchBackend } from '../core/batch-backend.js';

@@ -1,5 +1,5 @@
 {
-  "name": "@mycomputer/worker",
+  "name": "@nexuss0781/worker",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,11 +11,11 @@
     "start": "node --import tsx src/worker.ts"
   },
   "dependencies": {
-    "@mycomputer/shared": "workspace:*",
+    "@nexuss0781/shared": "workspace:*",
     "@supabase/supabase-js": "^2.46.1"
   },
   "devDependencies": {
-    "@mycomputer/app": "workspace:*",
+    "@nexuss0781/app": "workspace:*",
     "@types/node": "^22.10.5",
     "tsx": "^4.19.0",
     "typescript": "^5.7.2",

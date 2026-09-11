@@ -7,7 +7,7 @@ import {
   PathError,
   type ReadResult,
   type WriteResult,
-} from '@mycomputer/shared';
+} from '@nexuss0781/shared';
 import type { FsBackend } from './backend.js';
 import { chunkBytes, recombine, sha256Hex } from './chunker.js';
 import type { Oplog } from './oplog.js';

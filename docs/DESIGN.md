@@ -375,6 +375,6 @@ MAX_CHUNK_BYTES=8388608
 | ------------------ | --------------------------------------------- |
 | `shared/`          | zod schemas, types, bridge client contract, errors |
 | `core/` (in app)   | fs-engine, executor, oplog — portable, reused by worker |
-| `sdk/`             | `@mycomputer/sdk` client for agents           |
+| `sdk/`             | `@nexuss0781/mycomputer` client for agents           |
 | `db/`              | SQL migrations (schema §3)                     |
 | `.github/`         | worker workflow + claim helper                |

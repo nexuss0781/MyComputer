@@ -1,4 +1,4 @@
-import { execLogSchema, execRunSchema } from '@mycomputer/shared';
+import { execLogSchema, execRunSchema } from '@nexuss0781/shared';
 import type { Context } from 'hono';
 import type { Hono } from 'hono';
 import type { Executor } from '../../core/executor.js';

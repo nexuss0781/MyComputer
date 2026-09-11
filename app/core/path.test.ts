@@ -1,4 +1,4 @@
-import { PathError } from '@mycomputer/shared';
+import { PathError } from '@nexuss0781/shared';
 import { describe, expect, it } from 'vitest';
 import { basename, isStrictSubpath, isSubpathOrEqual, normalizePath, parentOf } from './path.js';
 

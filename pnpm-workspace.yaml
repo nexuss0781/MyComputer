@@ -3,3 +3,5 @@ packages:
   - services/*
   - shared
   - sdk
+
+prefer-workspace-packages: true

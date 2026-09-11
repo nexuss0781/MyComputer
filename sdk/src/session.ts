@@ -1,4 +1,4 @@
-import type { Execution, Inode } from '@mycomputer/shared';
+import type { Execution, Inode } from '@nexuss0781/shared';
 import type { ComputerClient } from './index.js';
 
 export interface SessionFacade {

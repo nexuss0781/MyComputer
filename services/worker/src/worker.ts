@@ -1,4 +1,4 @@
-import { BridgeClient, loadEnv } from '@mycomputer/shared';
+import { BridgeClient, loadEnv } from '@nexuss0781/shared';
 import { createClient } from '@supabase/supabase-js';
 import { BatchBackend } from '../../../app/core/batch-backend.js';
 import { runMultiGbBench } from '../../../app/core/bench-multigb.js';

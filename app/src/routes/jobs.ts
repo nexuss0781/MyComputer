@@ -1,4 +1,4 @@
-import { dispatchSchema } from '@mycomputer/shared';
+import { dispatchSchema } from '@nexuss0781/shared';
 import type { Hono } from 'hono';
 import type { Executor } from '../../core/executor.js';
 import type { JobStore } from '../../core/job-store.js';

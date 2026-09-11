@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { type BridgeLike, ChecksumError } from '@mycomputer/shared';
+import { type BridgeLike, ChecksumError } from '@nexuss0781/shared';
 import type { BlockRef } from './sync-supabase.js';
 
 export interface TgSinkTarget {

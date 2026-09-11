@@ -1,4 +1,4 @@
-import { sessionCreateSchema } from '@mycomputer/shared';
+import { sessionCreateSchema } from '@nexuss0781/shared';
 import type { Hono } from 'hono';
 import { runColdSelftest } from '../../core/cold-selftest.js';
 import type { Executor } from '../../core/executor.js';

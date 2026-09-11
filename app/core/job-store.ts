@@ -1,4 +1,4 @@
-import type { JobKind, JobRow, JobState } from '@mycomputer/shared';
+import type { JobKind, JobRow, JobState } from '@nexuss0781/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 const MAX_ATTEMPTS = 3;

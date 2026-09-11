@@ -10,7 +10,7 @@ import {
   readSchema,
   statSchema,
   writeSchema,
-} from '@mycomputer/shared';
+} from '@nexuss0781/shared';
 import type { Context, Hono } from 'hono';
 import type { ZodType, z } from 'zod';
 import type { FsEngine } from '../../core/fs-engine.js';

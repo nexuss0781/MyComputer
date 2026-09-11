@@ -1,4 +1,4 @@
-import { ConflictError, NotFoundError, PathError } from '@mycomputer/shared';
+import { ConflictError, NotFoundError, PathError } from '@nexuss0781/shared';
 import type { SessionStore } from '../src/session.js';
 import { Executor, MemoryExecStore } from './executor.js';
 import { FsEngine } from './fs-engine.js';

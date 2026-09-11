@@ -1,4 +1,4 @@
-import type { Inode, WriteResult } from '@mycomputer/shared';
+import type { Inode, WriteResult } from '@nexuss0781/shared';
 import { describe, expect, it } from 'vitest';
 import { ComputerClient, VirtualFs, codec } from './index.js';
 

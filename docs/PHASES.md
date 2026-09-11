@@ -173,7 +173,7 @@ the fork now bundles one. Exit criteria reached.
 
 **Goal:** agents drive the computer.
 
-- [x] `@mycomputer/sdk` client: fs + exec + sys surface
+- [x] `@nexuss0781/mycomputer` client: fs + exec + sys surface
 - [x] typed responses from `shared/` schemas
 - [x] streamed read/write helpers (range pagination)
 - [x] session scoping + error mapping
@@ -184,7 +184,7 @@ Tests:
 
 **Exit:** a script can `mount` a session and `write`, `exec`, `list` end-to-end.
 
-**Exit report (eaef9cb):** the SDK ships as `@mycomputer/sdk` with a
+**Exit report (eaef9cb):** the SDK ships as `@nexuss0781/mycomputer` with a
 zero-runtime-dependency client (`http.ts` transport, flat + envelope handling,
 base64 codec), typed methods for `fs`/`exec`/`sys`, error mapping from shared
 codes to `SdkError`/`NotFoundError`/`PathError`/`ConflictError`, streamed
@@ -273,7 +273,7 @@ detection (`ChecksumError`), and multi-GB streaming pipeline
 
 ---
 
-## Phase 9 — Native FS Adapter (`@mycomputer/sdk/fsa`)
+## Phase 9 — Native FS Adapter (`@nexuss0781/mycomputer/fsa`)
 
 **Goal:** real `fs.promises`-compatible filesystem handle for the virtual disk.
 
@@ -283,7 +283,7 @@ detection (`ChecksumError`), and multi-GB streaming pipeline
        `createReadStream`, `createWriteStream`
 - [x] `VirtualFsFileHandle`: `read`, `write`, `stat`, `truncate`, `close`
 - [x] Local metadata cache (inodes + directory listings), invalidated on mutations
-- [x] `mountFs(sessionId)` on `ComputerClient` + `@mycomputer/sdk/fsa` subpath export
+- [x] `mountFs(sessionId)` on `ComputerClient` + `@nexuss0781/mycomputer/fsa` subpath export
 - [x] Buffer semantics (returns `Buffer`, accepts `Buffer | string | Uint8Array`)
 - [x] Stats/ Dirent shapes (size, mode, mtime, isFile, isDirectory, etc.)
 
@@ -295,7 +295,7 @@ Tests:
        10 MiB createReadStream→createWriteStream byte-identical, appendFile,
        lstat alias, access, mkdir -p)
 
-**Exit:** `@mycomputer/sdk/fsa` subpath builds; `VirtualFs` implements the full
+**Exit:** `@nexuss0781/mycomputer/fsa` subpath builds; `VirtualFs` implements the full
 fs.promises subset against memory runtime; cache proof (zero HTTP on second
 stat/readdir); FileHandle read/write/close works; 10 MiB stream round-trip
 byte-identical; repo gates green.
@@ -320,7 +320,7 @@ machine, VM), NOT on Vercel. Linux first-class; macOS via macFUSE optional.
 
 ### Design (decided at planning time)
 
-- **Engine reuse:** daemon wraps `VirtualFs` (`@mycomputer/sdk/fsa`) as the
+- **Engine reuse:** daemon wraps `VirtualFs` (`@nexuss0781/mycomputer/fsa`) as the
   backing store — same metadata cache, same chunked read/write, same
   journal + SyncWriter durability. FUSE calls map 1:1 to existing fsa ops:
   - `getattr` → `stat`
@@ -337,7 +337,7 @@ machine, VM), NOT on Vercel. Linux first-class; macOS via macFUSE optional.
   flush on `fsync`/`release` (matches POSIX: fsync is the durability point).
   Large writes (`>= chunkSize`) flush immediately.
 - **Stack choice:** `fuse-native` (Node) — stays in one language, reuses
-  `@mycomputer/sdk` directly, no second runtime. Mount daemon as a new
+  `@nexuss0781/mycomputer` directly, no second runtime. Mount daemon as a new
   workspace `packages/fuse` (or `services/fuse`).
 - **Config:** mount point + session id via env/CLI:
   `mycomputer-fuse /mnt/mycomputer --session <sid>`.

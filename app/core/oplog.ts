@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { OperationStatus } from '@mycomputer/shared';
+import type { OperationStatus } from '@nexuss0781/shared';
 
 export interface OplogRecord {
   opId: string;

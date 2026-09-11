@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { NotFoundError } from '@mycomputer/shared';
+import { NotFoundError } from '@nexuss0781/shared';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../../app/src/app.js';
 import { resetRuntime } from '../../app/src/runtime.js';
@@ -8,7 +8,7 @@ import { ComputerClient } from './index.js';
 
 const sha256 = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 
-describe('@mycomputer/sdk integration (memory app runtime)', () => {
+describe('@nexuss0781/mycomputer integration (memory app runtime)', () => {
   let client: ComputerClient;
   let cleanup: (() => Promise<void>) | null = null;
 

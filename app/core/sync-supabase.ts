@@ -1,5 +1,5 @@
-import type { Inode } from '@mycomputer/shared';
-import type { Execution } from '@mycomputer/shared';
+import type { Inode } from '@nexuss0781/shared';
+import type { Execution } from '@nexuss0781/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { uuidFromSeed } from './ids.js';
 import type { PendingBlockState, SyncStateStore, SyncTarget } from './sync.js';

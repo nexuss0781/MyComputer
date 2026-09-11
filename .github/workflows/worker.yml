@@ -21,7 +21,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @mycomputer/shared build
+      - run: pnpm --filter @nexuss0781/shared build
       - name: execute worker
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -30,4 +30,4 @@ jobs:
           BRIDGE_TOKEN: ${{ secrets.BRIDGE_TOKEN }}
           BRIDGE_CHANNEL_ID: ${{ secrets.BRIDGE_CHANNEL_ID }}
           DEFAULT_SESSION_NAME: my-computer
-        run: pnpm --filter @mycomputer/worker run start
+        run: pnpm --filter @nexuss0781/worker run start

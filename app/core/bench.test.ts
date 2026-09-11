@@ -1,4 +1,4 @@
-import type { Inode } from '@mycomputer/shared';
+import type { Inode } from '@nexuss0781/shared';
 import { describe, expect, it } from 'vitest';
 import type { BlockRow, FsBackend } from './backend.js';
 import { BatchBackend } from './batch-backend.js';

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { SessionRow } from '@mycomputer/shared';
+import type { SessionRow } from '@nexuss0781/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 interface SessionRowRaw {

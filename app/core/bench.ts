@@ -1,4 +1,4 @@
-import { ChecksumError } from '@mycomputer/shared';
+import { ChecksumError } from '@nexuss0781/shared';
 import { sha256Hex } from './chunker.js';
 import { FsEngine } from './fs-engine.js';
 import { MemoryJournalStore, Oplog } from './oplog.js';

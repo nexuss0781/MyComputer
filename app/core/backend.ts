@@ -1,4 +1,4 @@
-import type { Inode } from '@mycomputer/shared';
+import type { Inode } from '@nexuss0781/shared';
 import type { Chunk } from './chunker.js';
 
 export interface BlockRow {

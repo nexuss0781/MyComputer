@@ -89,7 +89,7 @@ Required from the bot side at build time: bridge base URL + auth handshake.
 | Choice              | Rationale                                                |
 | ------------------- | -------------------------------------------------------- |
 | shared/             | Zod schemas + types + bridge contract — single source of truth |
-| sdk/ @mycomputer/sdk | Agents drive the computer: fs.write, terminal.run, sys.bench |
+| sdk/ @nexuss0781/mycomputer | Agents drive the computer: fs.write, terminal.run, sys.bench |
 
 ### Dev & verification
 
@@ -123,7 +123,7 @@ My-Computer/
     migrations/         → schema
   .github/workflows/worker.yml
   shared/               → types + wire protocol between layers
-  sdk/                  → @mycomputer/sdk for agent clients
+  sdk/                  → @nexuss0781/mycomputer for agent clients
 ```
 
 ### Data model (Supabase)
@@ -158,7 +158,7 @@ My-Computer/
 3. **Terminal** (`app`) — exec with captured stdout/stderr, streaming to `executions`.
 4. **Quick persist** — batch sync writer to Supabase (the sub-ms hot path).
 5. **Telegram sink** — chunked upload, manifest, download/reassemble via bridge.
-6. **SDK** — `@mycomputer/sdk` so agents can drive the computer.
+6. **SDK** — `@nexuss0781/mycomputer` so agents can drive the computer.
 7. **GH Actions worker** — `jobs` → long-running training/ops → write-back via bridge.
 8. **Benchmarks** — hot-path µs/ms numbers, cold-path restore timings, large-file (multi-GB) full-pipeline test.
 

@@ -1,4 +1,4 @@
-import type { Execution, Inode } from '@mycomputer/shared';
+import type { Execution, Inode } from '@nexuss0781/shared';
 import { describe, expect, it } from 'vitest';
 import type { BlockRow } from './supabase-backend.js';
 import type { PendingBlockState } from './sync.js';

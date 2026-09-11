@@ -1,4 +1,4 @@
-import type { Execution, Inode, SessionRow, WriteResult } from '@mycomputer/shared';
+import type { Execution, Inode, SessionRow, WriteResult } from '@nexuss0781/shared';
 import { VirtualFs, type VirtualFsConfig } from './fsa.js';
 import { HttpTransport, codec } from './http.js';
 import type {

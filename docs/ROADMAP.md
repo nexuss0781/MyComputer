@@ -10,7 +10,7 @@ github.com/nexuss0781/MyComputer (public), Supabase schema applied +
 verified (self-healing migrations run from Vercel), prod selftest `26/26`
 live (18 base + 4 persistence + 4 cold, coldVerified true, batch flush
 ~92 ms). Phase 8 exit report (`docs/BENCH.md`): 108 tests, all bench +
-drill suites pass, M4 milestone reached. Phase 9: `@mycomputer/sdk/fsa`
+drill suites pass, M4 milestone reached. Phase 9: `@nexuss0781/mycomputer/fsa`
 ships `VirtualFs` — a real `fs.promises`-compatible adapter for the
 virtual disk with local metadata cache, FileHandle, streams, and Buffer
 semantics. 122 tests total.
@@ -30,10 +30,10 @@ dev machine). Plan in `docs/PHASES.md`. Awaiting approval for M6.
 | 3     | Agent Tool Surface                    | Command execution, captured output, tool bridge      |
 | 4     | Quick Persistence                     | Sub-ms batch write path to Supabase                  |
 | 5     | Telegram Sink                         | Chunked upload/manifest, cold reads via bridge       |
-| 6     | SDK                                   | `@mycomputer/sdk` for agents                         |
+| 6     | SDK                                   | `@nexuss0781/mycomputer` for agents                         |
 | 7     | GH Actions Worker                     | Long-running ops / AI training dispatch              |
 | 8     | Bench & Harden                        | Benchmarks, recovery tests, large-file (multi-GB) proof |
-| 9     | Native FS Adapter                     | `@mycomputer/sdk/fsa` — fs.promises-compatible handle |
+| 9     | Native FS Adapter                     | `@nexuss0781/mycomputer/fsa` — fs.promises-compatible handle |
 | 10    | **FUSE Mount (planned)**              | OS-level filesystem: `mount -t mycomputer /path` — any process reads/writes the virtual disk as a real path |
 
 ## Milestones
@@ -58,7 +58,7 @@ dev machine). Plan in `docs/PHASES.md`. Awaiting approval for M6.
   + drill suites pass (micro sub-ms, flush-scale linear, crash-recovery replayed
   + byte-identical, corruption detection via ChecksumError, multi-GB streaming
   pipeline checksum-verified). Benchmark report in `docs/BENCH.md`.
-- **M5 (Phase 9):** the disk speaks `fs.promises`. `@mycomputer/sdk/fsa`
+- **M5 (Phase 9):** the disk speaks `fs.promises`. `@nexuss0781/mycomputer/fsa`
   ships `VirtualFs` (~414 lines TS, zero deps): readFile/writeFile/appendFile,
   mkdir/readdir+Dirent, rename/copyFile/rm, stat/lstat/access,
   open→FileHandle, streams; local metadata cache invalidated on mutations.

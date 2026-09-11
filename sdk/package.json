@@ -1,8 +1,8 @@
 {
-  "name": "@mycomputer/sdk",
-  "version": "0.0.0",
-  "private": true,
+  "name": "@nexuss0781/mycomputer",
+  "version": "0.1.0",
   "type": "module",
+  "files": ["dist"],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -25,10 +25,10 @@
     "example": "node examples/agent.mjs"
   },
   "dependencies": {
-    "@mycomputer/shared": "workspace:*"
+    "@nexuss0781/shared": "^0.1.0"
   },
   "devDependencies": {
-    "@mycomputer/app": "workspace:*",
+    "@nexuss0781/app": "workspace:*",
     "@types/node": "^22.10.5",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"

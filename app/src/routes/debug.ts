@@ -1,4 +1,4 @@
-import { loadEnv } from '@mycomputer/shared';
+import { loadEnv } from '@nexuss0781/shared';
 import type { Hono } from 'hono';
 
 const MIGRATION_SQL = `

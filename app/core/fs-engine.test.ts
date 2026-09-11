@@ -1,4 +1,4 @@
-import { ConflictError, NotFoundError, PathError } from '@mycomputer/shared';
+import { ConflictError, NotFoundError, PathError } from '@nexuss0781/shared';
 import { describe, expect, it } from 'vitest';
 import { makeMemoryEngine } from './selftest.js';
 

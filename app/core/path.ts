@@ -1,4 +1,4 @@
-import { PathError } from '@mycomputer/shared';
+import { PathError } from '@nexuss0781/shared';
 
 export function normalizePath(input: string): string {
   if (typeof input !== 'string' || input.length === 0) throw new PathError('path is required');

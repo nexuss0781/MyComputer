@@ -128,7 +128,7 @@ Connected to the real bridge at `https://telegram-bot-api-1.onrender.com`
 
 ## Phase 6 — SDK
 
-- [x] `@mycomputer/sdk` client (fs + exec + sys)
+- [x] `@nexuss0781/mycomputer` client (fs + exec + sys)
 - [x] typed responses from shared schemas
 - [x] streamed read/write helpers (range pagination)
 - [x] session scoping + error mapping
@@ -189,14 +189,14 @@ micro (sub-ms buffer append), flush-scale (linear), crash-recovery
 (replayed > 0, byte-identical), corruption detection (ChecksumError),
 multi-GB streaming pipeline (checksum-verified). M4 milestone reached.
 
-## Phase 9 — Native FS Adapter (`@mycomputer/sdk/fsa`)
+## Phase 9 — Native FS Adapter (`@nexuss0781/mycomputer/fsa`)
 
 - [x] `VirtualFs` class: readFile, writeFile, appendFile, mkdir, readdir
        (+Dirent), rename, copyFile, rm, unlink, rmdir, stat/lstat, access,
        open→FileHandle, createReadStream, createWriteStream
 - [x] `VirtualFsFileHandle`: read, write, stat, truncate, close
 - [x] Local metadata cache (inodes + directory listings)
-- [x] `mountFs()` on ComputerClient + `@mycomputer/sdk/fsa` subpath export
+- [x] `mountFs()` on ComputerClient + `@nexuss0781/mycomputer/fsa` subpath export
 - [x] Buffer/Stats/Dirent semantics
 - [x] unit tests `fsa.test.ts` (15 tests) — mock transport, cache, FileHandle, streams
 - [x] integration tests `fsa.integration.test.ts` (14 tests) — memory runtime

@@ -1,4 +1,4 @@
-import { ConflictError, NotFoundError, PathError } from '@mycomputer/shared';
+import { ConflictError, NotFoundError, PathError } from '@nexuss0781/shared';
 
 export interface SdkErrorDetail {
   code: string;

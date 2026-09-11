@@ -20,7 +20,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @mycomputer/shared build
+      - run: pnpm --filter @nexuss0781/shared build
       - name: run exec benchmark
         if: inputs.scope == 'exec' || inputs.scope == ''
         env:
@@ -29,7 +29,7 @@ jobs:
           BRIDGE_URL: ${{ secrets.BRIDGE_URL }}
           BRIDGE_TOKEN: ${{ secrets.BRIDGE_TOKEN }}
           BRIDGE_CHANNEL_ID: ${{ secrets.BRIDGE_CHANNEL_ID }}
-        run: pnpm --filter @mycomputer/worker exec tsx ../../app/tmp-bench-exec.mts
+        run: pnpm --filter @nexuss0781/worker exec tsx ../../app/tmp-bench-exec.mts
       - name: run 100mb benchmark
         if: inputs.scope == '100mb'
         env:
@@ -38,7 +38,7 @@ jobs:
           BRIDGE_URL: ${{ secrets.BRIDGE_URL }}
           BRIDGE_TOKEN: ${{ secrets.BRIDGE_TOKEN }}
           BRIDGE_CHANNEL_ID: ${{ secrets.BRIDGE_CHANNEL_ID }}
-        run: pnpm --filter @mycomputer/worker exec tsx ../../app/tmp-bench-100mb.mts
+        run: pnpm --filter @nexuss0781/worker exec tsx ../../app/tmp-bench-100mb.mts
       - name: run micro benchmark
         if: inputs.scope == 'micro'
         env:
@@ -47,7 +47,7 @@ jobs:
           BRIDGE_URL: ${{ secrets.BRIDGE_URL }}
           BRIDGE_TOKEN: ${{ secrets.BRIDGE_TOKEN }}
           BRIDGE_CHANNEL_ID: ${{ secrets.BRIDGE_CHANNEL_ID }}
-        run: pnpm --filter @mycomputer/worker exec tsx ../../app/tmp-bench.mts
+        run: pnpm --filter @nexuss0781/worker exec tsx ../../app/tmp-bench.mts
       - name: run digiedu benchmark
         if: inputs.scope == 'digiedu'
         env:
@@ -56,4 +56,4 @@ jobs:
           BRIDGE_URL: ${{ secrets.BRIDGE_URL }}
           BRIDGE_TOKEN: ${{ secrets.BRIDGE_TOKEN }}
           BRIDGE_CHANNEL_ID: ${{ secrets.BRIDGE_CHANNEL_ID }}
-        run: pnpm --filter @mycomputer/worker exec tsx ../../app/tmp-bench-digiedu.mts
+        run: pnpm --filter @nexuss0781/worker exec tsx ../../app/tmp-bench-digiedu.mts

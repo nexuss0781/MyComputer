@@ -1,4 +1,4 @@
-import { type ApiErrorShape, ConflictError, NotFoundError, PathError } from '@mycomputer/shared';
+import { type ApiErrorShape, ConflictError, NotFoundError, PathError } from '@nexuss0781/shared';
 import { describe, expect, it } from 'vitest';
 import { SdkError, codec } from './http.js';
 import { ComputerClient } from './index.js';

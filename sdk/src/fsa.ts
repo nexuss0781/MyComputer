@@ -1,5 +1,5 @@
 import { Readable, Writable } from 'node:stream';
-import type { Inode } from '@mycomputer/shared';
+import type { Inode } from '@nexuss0781/shared';
 import { readAll, writeAll } from './fssio.js';
 import type { ComputerClient } from './index.js';
 
