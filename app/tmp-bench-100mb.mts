@@ -50,7 +50,7 @@ const sessions = new SupabaseSessionStore(db);
 
 const SIZE_MB = 100;
 const TOTAL_BYTES = SIZE_MB * 1024 * 1024;
-const CHUNK_MB = 8;
+const CHUNK_MB = 1;
 const CHUNK_BYTES = CHUNK_MB * 1024 * 1024;
 const TOTAL_CHUNKS = Math.ceil(TOTAL_BYTES / CHUNK_BYTES);
 
