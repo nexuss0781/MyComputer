@@ -64,22 +64,27 @@ const session = await sessions.create({ name: `bench-100mb-${Date.now()}` });
 const sid = session.id;
 console.log(`Session: ${sid} (${Date.now() - t0} ms)`);
 
-// 2. Write 100 MB
+// 2. Write 100 MB — flush every 4 chunks to avoid single-RPC payload blowup
 const t1 = Date.now();
+const FLUSH_EVERY = 4;
+let totalFlushed = 0;
+let flushCount = 0;
 for (let i = 0; i < TOTAL_CHUNKS; i++) {
   const size = Math.min(CHUNK_BYTES, TOTAL_BYTES - i * CHUNK_BYTES);
   const chunk = deterministicBytes(i * 31, size);
   if (i === 0) await engine.write(sid, '/bench.bin', chunk);
   else await engine.append(sid, '/bench.bin', chunk);
-  process.stdout.write(`\r  Write: ${i + 1}/${TOTAL_CHUNKS}`);
+
+  if ((i + 1) % FLUSH_EVERY === 0 || i === TOTAL_CHUNKS - 1) {
+    const tF = Date.now();
+    const s = await writer.flush();
+    totalFlushed += s.flushed;
+    flushCount += 1;
+    process.stdout.write(`\r  Write+flush: ${i + 1}/${TOTAL_CHUNKS} (${Date.now() - tF} ms flush)`);
+  }
 }
 const writeMs = Date.now() - t1;
-console.log(`\n  Write: ${writeMs} ms (${(SIZE_MB / (writeMs / 1000)).toFixed(1)} MiB/s)`);
-
-// 3. Flush to Supabase
-const t2 = Date.now();
-const stats = await writer.flush();
-console.log(`  Flush: ${Date.now() - t2} ms (${stats.flushed} items)`);
+console.log(`\n  Write+flush: ${writeMs} ms (${(SIZE_MB / (writeMs / 1000)).toFixed(1)} MiB/s, ${flushCount} flushes, ${totalFlushed} items)`);
 
 // 4. Drain to Telegram
 const t3 = Date.now();
@@ -124,8 +129,7 @@ await sessions.delete(sid);
 
 const total = Date.now() - t0;
 console.log(`\n=== RESULTS ===`);
-console.log(`Write:         ${writeMs} ms  (${(SIZE_MB / (writeMs / 1000)).toFixed(1)} MiB/s)`);
-console.log(`Flush:         ${Date.now() - t2} ms`);
+console.log(`Write+flush:   ${writeMs} ms  (${(SIZE_MB / (writeMs / 1000)).toFixed(1)} MiB/s, ${flushCount} flushes)`);
 console.log(`Drain:         ${Date.now() - t3} ms  (${drain.uploaded} docs)`);
 console.log(`Cold restore:  ${coldMs} ms  (${(restoredBytes / 1024 / 1024 / (coldMs / 1000)).toFixed(1)} MiB/s)`);
 console.log(`Total:         ${total} ms`);
